@@ -2,8 +2,7 @@
 # Full-parameter SFT of local Qwen3.5 on the Video-Coder Blender agent trajectories (sft/gemini38_flash).
 # Usage: bash sft_qwen3_5_full.sh [4B|9B]
 #   Multi-node: run it once per node with NNODES / NODE_RANK / MASTER_ADDR / MASTER_PORT set (torchrun pass-through);
-#   sft_qwen3_5_full.sbatch submits it through Slurm (one node by default, `sbatch -N 2` for two). Unset, it trains on
-#   this node alone.
+#   unset, it trains on this node alone.
 #
 # Data: 3644 multi-turn bash-tool trajectories from gemini-3.8-flash, with rendered frames in the tool responses;
 # 14k-101k tokens each (median 43k, p90 62k), 164M tokens per epoch. Samples longer than MAX_LENGTH are dropped
