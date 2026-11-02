@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Full-parameter SFT of local Qwen3.5 on the Video-Coder Blender agent trajectories (sft/gemini38_flash).
-# Usage: bash sft_qwen3_5_full.sh [4B|9B]      (MiMo-V2.6-Distill-Qwen-9B: sft_mimo_v2.6_distill_qwen_9b_full.sh)
+# Usage: bash sft_qwen3_5_full.sh [4B|9B]
 #   Multi-node: run it once per node with NNODES / NODE_RANK / MASTER_ADDR / MASTER_PORT set (torchrun pass-through);
 #   sft_qwen3_5_full.sbatch submits it through Slurm (one node by default, `sbatch -N 2` for two). Unset, it trains on
 #   this node alone.
