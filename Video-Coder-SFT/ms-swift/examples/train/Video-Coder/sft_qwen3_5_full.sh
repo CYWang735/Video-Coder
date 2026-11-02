@@ -1,27 +1,6 @@
-#!/usr/bin/env bash
-# Full-parameter SFT of local Qwen3.5 on the Video-Coder Blender agent trajectories (sft/gemini38_flash).
-# Usage: bash sft_qwen3_5_full.sh [4B|9B]
-#   Multi-node: run it once per node with NNODES / NODE_RANK / MASTER_ADDR / MASTER_PORT set (torchrun pass-through);
-#   unset, it trains on this node alone.
-#
-# Data: 3644 multi-turn bash-tool trajectories from gemini-3.8-flash, with rendered frames in the tool responses;
-# 14k-101k tokens each (median 43k, p90 62k), 164M tokens per epoch. Samples longer than MAX_LENGTH are dropped
-# (truncation_strategy delete): 131072 keeps all of them, 98304 keeps 3642, 65536 keeps 3397.
-# 3644 samples / global batch 16 = 228 optimizer steps per epoch (456 for the 2 epochs trained here).
-#
-# Each node has 4x H100 (96GB). The four GPUs of a node form one sequence-parallel group (each holds a quarter of every
-# sequence, ~25k tokens for the longest 101k sample; ms-swift puts consecutive ranks in a group, so SP traffic stays
-# on the node's NVLink), and the nodes are data-parallel replicas. gradient_accumulation_steps is derived so the
-# global batch stays GLOBAL_BATCH=16 for any node count (16 on one node, 8 on two, 4 on four). ZeRO-3 shards
-# weights/grads/optimizer states across the four GPUs: ~16GB/GPU for 4B, ~36GB/GPU for 9B. If 9B runs out of memory,
-# rerun with DS=zero3_offload. Peak memory at these lengths has not been measured yet: run a few steps first and
-# watch memory(GiB) in the log.
-source /home/hpc/v189bd/v189bd13/wangcy/uni-agent/proxy.sh
-
-SIZE=${1:-9B}
-MODEL=/hnvme/workspace/v189bd13-VOpera/models/Qwen3.5-${SIZE}
-OUT=/hnvme/workspace/v189bd13-VOpera/checkpoints/qwen3.5-${SIZE}-Video-Coder
-DATA=/home/hpc/v189bd/v189bd13/wangcy/Video-Coder-sftdata/sft/gemini38_flash/train.json
+MODEL=Qwen/Qwen3.5-9B
+OUT=
+DATA=
 MAX_LENGTH=${MAX_LENGTH:-131072}
 DS=${DS:-zero3}
 
@@ -34,7 +13,6 @@ SP=4
 GLOBAL_BATCH=16
 DP=$(( NNODES * GPUS_PER_NODE / SP ))
 GRAD_ACC=$(( GLOBAL_BATCH / DP ))
-echo "node $NODE_RANK/$NNODES (master $MASTER_ADDR:$MASTER_PORT): data-parallel $DP x grad-accum $GRAD_ACC = global batch $(( DP * GRAD_ACC ))"
 
 # Optional kernels; training also works without them, only slower / with more memory.
 python -c "import fla" 2>/dev/null || echo "WARNING: flash-linear-attention not installed; Qwen3.5 linear attention uses the slow torch fallback"
