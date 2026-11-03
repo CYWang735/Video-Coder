@@ -38,11 +38,13 @@ def main() -> None:
                              "the GT's own parameters (duration, seed, ...)")
     args = parser.parse_args()
     rows = []
-    for rec in _read_records(os.path.expanduser(args.tasks)):
+    tasks = os.path.expanduser(args.tasks)
+    task_dir = os.path.dirname(os.path.abspath(tasks))  # relative GT paths are relative to the task file
+    for rec in _read_records(tasks):
         metadata = {"id": str(rec.get("id", ""))}
         gt = rec.get(args.gt_field)
         if gt:
-            metadata["gt_video"] = os.path.abspath(os.path.expanduser(gt))
+            metadata["gt_video"] = os.path.abspath(os.path.join(task_dir, os.path.expanduser(gt)))
         if args.require_gt and not (gt and os.path.isfile(metadata["gt_video"])):
             raise SystemExit(f"record {rec.get('id')!r}: GT video missing or not found: {gt!r}")
         if rec.get(args.gen_prompt_field):

@@ -29,13 +29,18 @@ bash examples/video_coder/install_harness.sh /path/to/mini-swe-agent-tool-dir
 
 ## RL Training
 
-First, convert the RL tasks into parquet. Each record needs a task prompt and a ground-truth video (`gt_video`). The H3 request that produced each GT video is read from `<gt>.json`.
+First, download the RL data from [Hugging Face](https://huggingface.co/datasets/<hf-user>/<dataset>). It contains:
+- `train.jsonl` and `val.jsonl`, one task per line. Each line has `id`, `prompt` (the scene description) and `gt_video` (a path relative to the jsonl file).
+- The ground-truth videos. Each video comes with a `<gt>.json` that holds the H3 request it was generated with.
+
+Then convert the data into parquet:
 
 ```bash
+huggingface-cli download <hf-user>/<dataset> --repo-type dataset --local-dir data/video-coder-rl
 cd Video-Coder-RL/uni-agent
-python -m uni_agent.tasks.video_coder.preprocess --tasks train.jsonl \
+python -m uni_agent.tasks.video_coder.preprocess --tasks ../../data/video-coder-rl/train.jsonl \
     --out data/video_coder_train.parquet --require-gt --gt-request-sidecar
-python -m uni_agent.tasks.video_coder.preprocess --tasks val.jsonl \
+python -m uni_agent.tasks.video_coder.preprocess --tasks ../../data/video-coder-rl/val.jsonl \
     --out data/video_coder_val.parquet --require-gt --gt-request-sidecar
 ```
 
