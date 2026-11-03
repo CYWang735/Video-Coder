@@ -1,0 +1,178 @@
+# Teacher trajectory generation: mini-swe-agent (tool-call mode) + OpenAI official API.
+# The system/instance templates below become the SFT prompts, so the student must later run
+# with the same templates. Changing them requires a new output directory.
+
+harness:
+  # Blender version the scripts must target. Set this to the version you will execute/render with
+  # later; the prompt tells the teacher to use exactly this API. Required for non-dry runs.
+  blender_version: "4.5"
+  # true: the agent gets `run_blender` (real execution + render) and a sample is accepted only if the harness
+  # re-executes the final script from scratch and it renders a valid video. false: static checks only.
+  blender_available: true
+  bpy_python: ${WORK}/envs/bpy45/bin/python      # Python 3.11 + bpy 4.5.14
+  bpy_libs: ${WORK}/envs/bpy45-mesa              # libGL/X11 libs + Mesa llvmpipe EGL (Workbench on CPU)
+  exec_timeout: 600                              # seconds per execution, render included
+  summary_samples: 6                             # frames sampled for the scene summary shown to the agent
+  content_samples: 8                             # frames sampled for the empty / static / out-of-view checks
+  # run_blender returns evenly spaced frames of the render as images, so the agent inspects its own result
+  # (needs a vcsft.models.Visual* model class)
+  visual_feedback: true
+  preview_frames: 8
+  preview_width: 640
+  # optional VLM check of the final render (vcsft/judge.py); off: acceptance uses deterministic checks only
+  judge:
+    enabled: false
+    model: openai/gpt-6-astra
+    frames: 8
+    width: 640
+    min_score: 8
+    attempts: 2
+  output_video: output.mp4
+  fps: 24
+  frame_count: 120        # shortest video: 120 frames = 5 s at 24 fps
+  max_frame_count: 240    # longest video: 240 frames = 10 s; the model chooses the length in between
+  resolution: [1280, 720]
+  script_name: main.py
+
+model:
+  # Native Responses API. Do not use `litellm` (Chat Completions): for gpt-6 models litellm bridges it to the
+  # Responses API and drops the function_call items, so every step fails with "No tool calls found".
+  # The Responses path also carries the model's encrypted reasoning across turns.
+  model_class: vcsft.models.VisualResponseModel   # litellm_response + images in tool results (run_blender preview)
+  model_name: openai/gpt-6-astra          # litellm "<provider>/<model id>"; confirm the exact id on your OpenAI account
+  cost_tracking: ignore_errors            # litellm may not know the price of a new model; budget is enforced by max_calls
+  # litellm_model_registry: configs/model_registry.json   # optional: register prices to get real cost numbers
+  model_kwargs:
+    drop_params: true
+    parallel_tool_calls: false            # one command per step gives cleaner trajectories
+    # reasoning_effort: high
+  observation_template: |
+    {%- if output.output | length < 10000 -%}
+    {
+      "returncode": {{ output.returncode }},
+      "output": {{ output.output | tojson }}
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
+    {%- else -%}
+    {
+      "returncode": {{ output.returncode }},
+      "output_head": {{ output.output[:5000] | tojson }},
+      "output_tail": {{ output.output[-5000:] | tojson }},
+      "elided_chars": {{ output.output | length - 10000 }},
+      "warning": "Output too long."
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
+    {%- endif -%}
+  format_error_template: |
+    {% if finish_reason is defined and (finish_reason == "length" or (finish_reason == "tool_calls" and not has_tool_calls)) -%}
+    Your previous response reached the output token limit (finish_reason={{ finish_reason }}) before you produced a tool call, so it was cut off. Respond more concisely and finish with exactly one bash tool call.
+    {%- else -%}
+    Tool call error:
+
+    <error>
+    {{error}}
+    </error>
+
+    Every response must call the 'bash' tool exactly once with {"command": "..."}.
+    To finish, run `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT` on its own.
+    {%- endif %}
+
+environment:
+  environment_class: local
+  timeout: 900          # per command; run_blender includes a full render
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    PIP_PROGRESS_BAR: "off"
+    TQDM_DISABLE: "1"
+
+agent:
+  step_limit: 30
+  cost_limit: 0          # per-task cost limit is meaningless without price data; use step_limit
+  wall_time_limit_seconds: 1800
+  max_consecutive_format_errors: 3
+  repeat_warn: 3         # warn from the 3rd consecutive near-identical command with the same result
+  repeat_stop: 6         # ... and end the task (exit status RepeatedActions) at the 6th
+  system_template: |
+    You are an expert Blender technical artist and Python programmer. You write Blender Python (bpy) scripts that build and animate 3D scenes and render them as untextured white-model (clay) videos. You work in a Linux shell through a bash tool.
+  instance_template: |
+    ## Task
+
+    Write a Blender {{ blender_version }} Python script that builds the following scene and renders it as an animated white-model video:
+
+    <scene_description>
+    {{ task }}
+    </scene_description>
+
+
+    ## Script contract
+
+    - Write exactly one self-contained script: `{{ script_name }}` in the current directory.
+    - It is executed headless as `blender --background --factory-startup --python {{ script_name }}` with Blender {{ blender_version }}, from the directory the video must be written to. Use only the Blender {{ blender_version }} API and the Python standard library; no external assets, files or add-ons.
+    - Start by removing every object in the default scene, then build the scene from scratch.
+    - Geometry: model with primitives, modifiers, `bmesh` or `mesh.from_pydata`. Name objects meaningfully. Keep the total scene under ~500k faces. Objects must not intersect unless the description implies contact.
+    {% if max_frame_count > frame_count -%}
+    - Animation: the video lasts {{ (frame_count / fps) | round | int }}-{{ (max_frame_count / fps) | round | int }} seconds at {{ fps }} fps, i.e. {{ frame_count }}-{{ max_frame_count }} frames; choose the length that suits the action. Set `scene.frame_start = 1` and `scene.frame_end` to that length, and animate with keyframes, drivers, constraints or physics so that the motion described actually happens within that range. Bake any physics simulation before rendering.
+    {%- else -%}
+    - Animation: the video has {{ frame_count }} frames at {{ fps }} fps. Set `scene.frame_start = 1` and `scene.frame_end = {{ frame_count }}`, and animate with keyframes, drivers, constraints or physics so that the motion described actually happens within that range. Bake any physics simulation before rendering.
+    {%- endif %}
+    - Camera: create a camera, assign it to `scene.camera`, and frame the action so that it stays in view for all frames (animate the camera if the description asks for camera motion).
+    - Seed any randomness (`random.seed(...)`) so the result is deterministic. Prefer `bpy.data` / low-level API over `bpy.ops` where the operator needs UI context.
+    - Do not import subprocess, socket, shutil, urllib or similar modules, and do not call os.system/eval/exec.
+
+    ## White-model render (required, at the end of the script)
+
+    Every video in this dataset uses the same look, so configure exactly this and then render:
+
+    - `scene.render.engine = 'BLENDER_WORKBENCH'`
+    - `scene.display.shading`: `light = 'STUDIO'`, `color_type = 'SINGLE'`, `single_color = (0.8, 0.8, 0.8)`, `show_shadows = True`, `show_cavity = True`, `cavity_type = 'WORLD'`. No materials or textures are needed; Workbench studio lighting ignores scene lights.
+    - Resolution {{ resolution[0] }}x{{ resolution[1] }} at `resolution_percentage = 100`, `scene.render.fps = {{ fps }}`.
+    - Output: `scene.render.image_settings.file_format = 'FFMPEG'`, `scene.render.ffmpeg.format = 'MPEG4'`, `scene.render.ffmpeg.codec = 'H264'`, `scene.render.filepath = os.path.join(os.getcwd(), '{{ output_video }}')`.
+    - Last statement: `bpy.ops.render.render(animation=True)`.
+    - Write no other files: no .blend files, images or caches outside the render. Do not quit Blender.
+
+    ## Tools
+
+    {% if blender_available -%}
+    Blender {{ blender_version }} is available through two commands (do not install anything):
+
+    ```bash
+    check_script {{ script_name }}   # fast static check: syntax, bpy import, camera, render call, forbidden calls
+    run_blender {{ script_name }}    # executes the script exactly like the harness and renders {{ output_video }} (CPU, ~20-120 s)
+    ```
+
+    `run_blender` reports the Python traceback if the script fails, whether {{ output_video }} has {% if max_frame_count > frame_count %}{{ frame_count }}-{{ max_frame_count }} frames matching the scene frame range{% else %}{{ frame_count }} frames{% endif %} at {{ resolution[0] }}x{{ resolution[1] }}, and a scene summary: object counts, animated objects, world positions of moving meshes at sampled frames, and meshes whose origin is outside the camera view. Use the numbers to verify that the motion, timing and framing match the description.{% if visual_feedback %} It also returns {{ preview_frames }} frames sampled evenly from the rendered video as images, with their frame numbers and times.{% endif %} It reports a problem when most frames are empty, nothing moves, or no object is in view.
+    {%- else -%}
+    Blender is NOT installed in this environment and must not be installed (no `pip install bpy`, no downloads). You cannot execute the script, so reason carefully about the Blender {{ blender_version }} API: exact operator names, property names and argument names.
+    The only verification tool is the static checker:
+
+    ```bash
+    check_script {{ script_name }}
+    ```
+
+    It checks syntax, required structure (bpy import, camera, render call) and forbidden calls. Passing it does not prove the script runs, so review the code yourself before submitting.
+    {%- endif %}
+
+    ## Workflow
+
+    1. Think & Plan: Before generating any code, explicitly reason about the scene: objects, their dimensions and positions in meters, the motion over time (frame timing), and camera placement/framing.
+    2. Write `{{ script_name }}` with a heredoc: `cat <<'EOF' > {{ script_name }}` ... `EOF`.
+    3. Run `check_script {{ script_name }}` and fix every error.
+    {% if blender_available -%}
+    4. Run `run_blender {{ script_name }}`. Fix every error and problem it reports, and compare the scene summary against the description (positions, timing, clearances, camera framing).{% if visual_feedback %}
+       Then inspect the returned frames one by one against the description and write down every concrete problem you see: missing, unrecognizable or wrongly counted objects; wrong arrangement; motion that is missing, in the wrong order or at the wrong time; objects cut off, outside the frame or too small; objects passing through each other; wrong camera behavior. Fix the problems in the script and run `run_blender` again.{% endif %}
+       Repeat until it reports RUN OK{% if visual_feedback %} and the frames clearly show every element of the description{% else %} and the numbers match{% endif %}. If a command keeps giving the same result, change the script or your approach instead of repeating it; repeated identical commands end the task.
+    5. Submit with `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT` as a command on its own. You cannot continue after that. The harness then re-executes `{{ script_name }}` from scratch; the task only counts if it renders a valid video{% if judge_enabled %} and a reviewer who compares frames of the video against the description confirms that every element it describes (objects, arrangement, motion, camera) is clearly shown{% endif %}.
+    {%- else -%}
+    4. Re-read the script (`nl -ba {{ script_name }}`) and check API usage, coordinates, keyframe timing and camera framing against the description; fix problems with a rewrite or `sed -i`.
+    5. When the script is final and passes the check, submit with `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT` as a command on its own. You cannot continue after that.
+    {%- endif %}
+
+    ## Command rules
+
+    - Each command runs in a fresh subshell in the task directory; `cd` and environment variables do not persist.
+    - Only create or modify files in the current directory.
+    - Use only `check_script` and `run_blender` to check and execute scripts. Do not inspect or modify the harness itself (how these commands are implemented, `VCSFT_*` environment variables, the Blender/bpy installation) and do not run Blender or bpy any other way; such commands are blocked.
+    - For a quick experiment, write a small script in the current directory and run `run_blender experiment.py`: whatever it `print()`s appears in the blender log. Delete experiment files before submitting.
+
+    

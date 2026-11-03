@@ -1,0 +1,5 @@
+# 5-10 s (120-240 frames at 24 fps, chosen by the model) is now the default in teacher.yaml.
+# This overlay is kept so older commands that pass it still work; it changes nothing.
+harness:
+  frame_count: 120
+  max_frame_count: 240

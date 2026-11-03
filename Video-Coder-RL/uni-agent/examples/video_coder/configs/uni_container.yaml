@@ -1,0 +1,10 @@
+# Overlay applied by run_agent.py on top of the harness config (configs/teacher.yaml):
+# paths for the bpy-agent.sif container, and the model comes from the gateway, not from teacher.yaml.
+# Prompts, tools and acceptance checks stay those of the base config; the agent gets an hour instead of 30 min
+# (wall_time_limit_seconds): with many rollouts at once each turn is slower, and 30 min cut many of them short.
+harness:
+  bpy_python: /usr/local/bin/python3   # Python 3.11 + bpy 4.5.14 in bpy-agent.sif
+  bpy_libs: /usr                       # Mesa llvmpipe EGL/GL are system libraries in the image
+  visual_feedback: false               # true: run_blender returns preview frames (needs a vision-capable policy)
+agent:
+  wall_time_limit_seconds: 3600       # task run_timeout (agent process) and sandbox runtime_timeout must exceed it

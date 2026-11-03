@@ -1,0 +1,35 @@
+working_dir: ./
+excludes: ["/.git/"]
+# No `pip:` section: swebench (used by the SWE reward code) is already in the
+# uni-agent conda env that `ray start` runs from, and swe-rex / volcengine are only
+# needed by the vefaas sandbox. Installing them per job would need the proxy on
+# every compute node.
+env_vars:
+  PYTHONPATH: "verl"
+  TORCH_NCCL_AVOID_RECORD_STREAMS: "1"
+  CUDA_DEVICE_MAX_CONNECTIONS: "1"
+  # Online wandb from a compute node needs the cluster proxy for wandb.ai only: set
+  # https_proxy plus a NO_PROXY that covers every in-cluster address (localhost and
+  # the node IP) in the shell *before* `ray start`, so workers inherit both. Use
+  # "offline" (and `wandb sync` from a login node later) if the node has no proxy.
+  WANDB_MODE: "online"
+  # Keep run files on shared storage: the default (the Ray job's working dir under
+  # /tmp) is wiped when the Slurm job ends.
+  WANDB_DIR: "/home/hpc/v189bd/v189bd13/wangcy/uni_agent_logs/wandb"
+  # First pulls of multi-GB SWE images happen inside sandbox start(); pre-pull, and
+  # give cold starts room anyway.
+  SANDBOX_STARTUP_TIMEOUT: "3600"
+  # HuggingFace caches: ~/.cache lives on /hnvme (file-count quota, currently over the hard
+  # limit), and datasets writes its filter/map results there when the dataloader starts.
+  # Explicit values because proxy.sh exports HF_HOME / HF_DATASETS_CACHE into the Ray head.
+  HF_HOME: "/tmp/v189bd13/hf_home"
+  HF_DATASETS_CACHE: "/tmp/v189bd13/hf_datasets_cache"
+  # JIT compile caches create thousands of files: keep them node-local, off the
+  # /hnvme (~/.cache) file quota.
+  VLLM_CACHE_ROOT: "/tmp/v189bd13-vllm-cache"
+  TRITON_CACHE_DIR: "/tmp/v189bd13-triton-cache"
+  TORCHINDUCTOR_CACHE_DIR: "/tmp/v189bd13-inductor-cache"
+  # Qwen3.5 GatedDeltaNet runs on flash-linear-attention (in the v3 env archive, see
+  # examples/video_coder/unpack_env.sh). Its TileLang backend (tilelang is in the env) JIT-compiles
+  # a kernel for every new sequence length (~20 s each); the Triton kernels serve any length.
+  FLA_TILELANG: "0"

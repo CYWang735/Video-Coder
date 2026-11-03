@@ -1,0 +1,4 @@
+# Overlay for vLLM students: same Chat Completions model class, plus run_blender preview images in tool results.
+# Apply after the student overlay: --overlay configs/student_<model>.yaml --overlay configs/visual_chat.yaml
+model:
+  model_class: vcsft.models.VisualChatModel

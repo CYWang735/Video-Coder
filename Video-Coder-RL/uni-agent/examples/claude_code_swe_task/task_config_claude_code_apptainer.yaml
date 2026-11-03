@@ -1,0 +1,54 @@
+# Claude Code tasks running in local Apptainer sandboxes (HPC nodes without Docker).
+# Each sandbox is a rootless `apptainer instance` on the host network, so Claude
+# Code reaches the gateway directly -- no reverse tunnel needed. Task images are
+# pulled from Docker Hub once per node into sandbox_kwargs.sif_dir (default: a
+# per-user dir under $TMPDIR); set https_proxy if the node needs a proxy to pull.
+# The host's Claude Code binary is bind-mounted and prepended to the image PATH.
+# Replace the bind source with your own `readlink -f $(which claude)`.
+# First pulls of multi-GB SWE images run inside sandbox start(), which is capped by
+# SANDBOX_STARTUP_TIMEOUT (default 600s): raise it (e.g. 3600) for cold runs.
+- name: swe_bench
+  sandbox:
+    provider: apptainer
+    runtime_timeout: 7200
+    sandbox_kwargs:
+      pull_timeout: 1800
+      binds:
+        - /home/hpc/v189bd/v189bd13/.local/share/claude/versions/2.1.283:/opt/claude-code/bin/claude:ro
+      add_to_path:
+        - /opt/claude-code/bin
+  agent:
+    name: claude_code
+    max_turns: 200
+    run_timeout: 4800
+    extra_env:
+      CLAUDE_CODE_MAX_CONTEXT_TOKENS: "136000"
+      CLAUDE_CODE_AUTO_COMPACT_WINDOW: "120000"
+  prompt_template: &swe_claude_prompt
+    - role: user
+      content: |-
+        Read the following task description and resolve the issue in the current directory.
+
+        Task description:
+        {problem_statement}
+
+        Inspect the relevant code, make the minimal correct changes, and verify the result with appropriate tests or checks. Do not modify tests or commit changes. When finished, briefly summarize what changed and how it was verified.
+
+- name: swe_rebench
+  sandbox:
+    provider: apptainer
+    runtime_timeout: 7200
+    sandbox_kwargs:
+      pull_timeout: 1800
+      binds:
+        - /home/hpc/v189bd/v189bd13/.local/share/claude/versions/2.1.283:/opt/claude-code/bin/claude:ro
+      add_to_path:
+        - /opt/claude-code/bin
+  agent:
+    name: claude_code
+    max_turns: 200
+    run_timeout: 4800
+    extra_env:
+      CLAUDE_CODE_MAX_CONTEXT_TOKENS: "136000"
+      CLAUDE_CODE_AUTO_COMPACT_WINDOW: "120000"
+  prompt_template: *swe_claude_prompt

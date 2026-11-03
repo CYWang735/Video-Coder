@@ -1,0 +1,48 @@
+# mini-swe-agent as the training harness, on local Apptainer sandboxes (no Docker, no
+# openyuanrong). Counterpart of task_config_claude_code_apptainer.yaml: same sandbox
+# setup, different agent. Derived from examples/mini_swe_agent/task_config_mini_swe_agent.yaml.
+#
+# Per compute node, once (the SIFs and the tool dir are node-local):
+#   1. images : python examples/inference/prepull_apptainer_images.py --data-path <train.parquet> --task-config <this file>
+#   2. tool   : bash examples/mini_swe_agent/build_tool_apptainer.sh extract
+#               (build it once beforehand with `... build` on a login node; it is a single
+#               tarball, $HOME/wangcy/mini-swe-agent-tool.tar.gz, unpacked to
+#               /tmp/$USER/mini-swe-agent-tool and bound read-only at /opt/mini-swe-agent)
+#
+# The sandbox shares the host network, so the agent reaches the gateway session URL
+# directly: no reverse tunnel (do not set sandbox_kwargs.proxy_port).
+#
+# Differences from the Claude Code harness worth knowing:
+#   - The user prompt is the dataset's problem statement; mini-swe-agent wraps it in its own
+#     instruction template, so there is no prompt_template here.
+#   - It talks OpenAI tool-calling (one `bash` tool) to <gateway>/v1/chat/completions, and an
+#     episode counts as finished only when it submits (exit_status == "Submitted").
+#   - There is NO context auto-compaction: the whole conversation is resent every step. If it
+#     outgrows the rollout window (prompt + MAX_RESPONSE_LENGTH) the request fails and the
+#     episode is "unfinished" (masked from the loss with MASK_UNFINISHED_EPISODE=True).
+#     Keep step_limit consistent with MAX_RESPONSE_LENGTH.
+- name: swe_rebench
+  sandbox: &apptainer_sandbox
+    provider: apptainer
+    runtime_timeout: 7200
+    sandbox_kwargs:
+      sif_dir: /tmp/uni-agent-apptainer-v189bd13/sif
+      pull_timeout: 1800
+      binds:
+        - /home/hpc/v189bd/v189bd13/wangcy/mini-swe-agent-tool-2.4.6:/opt/mini-swe-agent:ro
+  agent: &mini_swe_agent
+    name: mini_swe_agent
+    step_limit: 50
+    run_timeout: 3600
+    # Task-image conda env activated around the launch (present in SWE-rebench images).
+    conda_env_path: /opt/miniconda3/envs/testbed
+    tool_python: /opt/mini-swe-agent/bin/python
+    run_agent_script: /opt/mini-swe-agent/bin/run_agent.py
+  eval_timeout: 600
+
+# Validation split (TEST_FILE=swe_bench_verified.parquet). The conda env path is the
+# official recipe's, not re-checked against swebench images here.
+- name: swe_bench
+  sandbox: *apptainer_sandbox
+  agent: *mini_swe_agent
+  eval_timeout: 600

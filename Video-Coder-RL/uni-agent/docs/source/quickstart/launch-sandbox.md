@@ -1,0 +1,415 @@
+# Launch a Sandbox
+
+Uni-Agent provides an isolated and persistent execution environment for agents. Files, installed packages, and runtime state remain available across interactions within the same sandbox session.
+
+This guide focuses on the ReAct Agent Tool workflow. It uses [`examples/quickstart/sandbox/demo.py`](https://github.com/verl-project/uni-agent/blob/main/examples/quickstart/sandbox/demo.py) to install a package, create and edit a Python script, execute it, and verify that state persists across tool calls.
+
+```bash
+DEBUG_MODE=1 SANDBOX_PROVIDER=xxx python examples/quickstart/sandbox/demo.py
+```
+
+!!! note "About `demo.py` and `DEBUG_MODE`"
+    You can use this `demo.py` to run an end-to-end sandbox check.
+
+    Set `DEBUG_MODE=1` to display the per-session `INFO` walkthrough in the console.
+
+## Start a Sandbox
+
+### Choose a Sandbox Backend
+
+Uni-Agent supports multiple sandbox backends. Choose the backend that matches your workflow. Providers are loaded lazily, so only the selected backend SDK needs to be installed.
+
+=== "Local"
+
+    **Host execution only; `local` is not a sandbox.** Commands run directly on the host.
+
+    !!! danger "Do not use `local` for sandboxed tasks"
+        Use `local` **only** for tasks that do not require a sandbox, such as HotpotQA.
+        Do not use it for tasks that require sandbox isolation: commands can read, modify,
+        or delete files on the host and change the active Python environment. To run a
+        sandbox locally, use the `Docker` backend instead.
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(provider="local")
+    ```
+
+=== "Docker"
+
+    **Local, isolated.** [Docker](https://www.docker.com/) runs agents in containers on your machine.
+
+    Install Docker and make sure its daemon is running. By default, Docker pulls the image when it is not already available locally.
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(
+        provider="docker",
+        image="python:3.12",
+        runtime_timeout=3600,
+        image_mounts=[
+            {"image": "<tool-image>", "mount_path": "/opt/tool"},
+        ],
+        executable_paths={"tool": "/opt/tool/bin/tool"},
+        sandbox_kwargs={
+            # "missing" (default), "always", or "never".
+            "pull_policy": "missing",
+            # Optional arguments inserted before the image in `docker run`.
+            "run_args": ["--network", "none"],
+            # Optional seconds budget for pulling the image and for starting the container.
+            "pull_timeout": 900,
+            "start_timeout": 120,
+        },
+    )
+    ```
+
+    The provider starts an ephemeral container, executes commands with `docker exec`,
+    transfers files with `docker cp`, and removes the container when the sandbox exits.
+    Before `docker run`, the provider applies `pull_policy` uniformly to the task image
+    and all mounted images. `pull_timeout` bounds each required `docker pull`, while
+    `start_timeout` bounds `docker run`; both default to 600 seconds. The whole startup
+    is also bounded by `SANDBOX_STARTUP_TIMEOUT` (600s by default).
+    The container entrypoint is fixed to `sleep`, with `runtime_timeout` passed as
+    its duration so the container exits at the configured lifetime. Task images must
+    therefore provide `sleep`. Docker image mounts require the containerd image store;
+    their source images are prepared according to `pull_policy` before `docker run`.
+    Run `docker login <registry>` first when pulling from a private registry.
+
+=== "veFaaS"
+
+    **Remote cloud service.** [veFaaS](https://www.volcengine.com/product/vefaas) provides elastic, isolated sandboxes on Volcengine.
+
+    Install its client dependencies:
+
+    ```bash
+    pip install volcengine-python-sdk swe-rex
+    ```
+
+    Configure the veFaaS endpoint and Volcengine credentials. You can follow the [Volcengine tutorial](https://www.volcengine.com/docs/6662/2278468?lang=zh) to obtain the required configuration parameters.
+
+    ```bash
+    export VEFAAS_FUNCTION_ID="<function-id>"
+    export VEFAAS_FUNCTION_ROUTE="<function-route>"
+    export VOLCE_ACCESS_KEY="<access-key>"
+    export VOLCE_SECRET_KEY="<secret-key>"
+    ```
+
+    To spread load across several veFaaS functions, pass a comma-separated list
+    to each variable; the i-th id pairs with the i-th route (so the two lists
+    must have the same length), and each sandbox binds to one randomly chosen
+    pair for its lifetime:
+
+    ```bash
+    export VEFAAS_FUNCTION_ID="<function-id-1>,<function-id-2>"
+    export VEFAAS_FUNCTION_ROUTE="<function-route-1>,<function-route-2>"
+    ```
+
+    Create the sandbox configuration:
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(
+        provider="vefaas",
+        image="python:3.12",
+        runtime_timeout=3600,
+        sandbox_kwargs={"startup_timeout": 120},
+    )
+    ```
+
+=== "Modal"
+
+    **Remote cloud service.** [Modal](https://modal.com/) provides on-demand isolated sandboxes without requiring you to manage a cluster.
+
+    Install and authenticate the Modal client:
+
+    ```bash
+    pip install modal
+    modal token set
+    ```
+
+    Alternatively, you can provide the Modal credentials through environment variables:
+
+    ```bash
+    export MODAL_TOKEN_ID="<token-id>"
+    export MODAL_TOKEN_SECRET="<token-secret>"
+    ```
+
+    Configure the image, lifecycle timeout, and optional Modal app name:
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(
+        provider="modal",
+        image="python:3.12",
+        runtime_timeout=3600,
+        image_mounts=[
+            {"image": "<tool-image>", "mount_path": "/opt/tool"},
+        ],
+        executable_paths={"tool": "/opt/tool/bin/tool"},
+        sandbox_kwargs={"app_name": "agent-sandbox"},
+    )
+    ```
+
+    Modal builds each configured image and mounts it into the running
+    Sandbox with `Sandbox.mount_image`. Note that Modal SDK 1.3.4 or newer is required when using `image_mounts`.
+
+=== "E2B"
+
+    **Remote cloud service.** [E2B](https://e2b.dev/) starts Firecracker-based
+    sandboxes from pre-built templates.
+
+    Install the SDK and configure its API key:
+
+    ```bash
+    pip install "e2b>=2.26,<3"
+    export E2B_API_KEY="<e2b-api-key>"
+    ```
+
+    To use a template already provided by the service, pass its name or ID:
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(
+        provider="e2b",
+        runtime_timeout=3600,
+        sandbox_kwargs={
+            "template": "my-ready-template",
+            "allow_internet_access": True,
+            # Optional: proxy only E2B SDK traffic without setting a
+            # process-wide HTTP_PROXY in the training worker.
+            "proxy": "http://proxy.example:8080",
+        },
+    )
+    ```
+
+    Alternatively, pass an open-source image. The provider checks its
+    deterministic template name and builds the template when missing:
+
+    ```yaml
+    sandbox:
+      provider: e2b
+      image: python:3.12
+      sandbox_kwargs:
+        cpu_count: 4
+        memory_mb: 8192
+    ```
+
+    CPU and memory are part of the generated template name. Changing either
+    value builds and uses a separate template.
+
+    `sandbox_kwargs.proxy` is forwarded to E2B template operations, sandbox
+    creation, and subsequent SDK requests. It does not set proxy variables
+    inside the remote sandbox; use `sandbox_kwargs.envs` with `HTTP_PROXY` /
+    `HTTPS_PROXY` when commands running in the sandbox also need a proxy.
+
+    Commands and file operations run as `root` by default. Set
+    `sandbox_kwargs.user: null` to use the template's default user instead.
+
+    E2B does not provide OCI image mounts. Build a composite E2B template
+    when the task needs a separate runtime image; configuring `image_mounts`
+    is rejected explicitly. `executable_paths` remains available for binaries
+    already present in the selected image or template.
+
+    !!! warning "Gateway reachability"
+        Host-side agents such as ReAct only use E2B for tools. Agents launched
+        inside the sandbox, such as Claude Code, must be able to reach their
+        model endpoint from E2B. Use a routable HTTPS Gateway address and an
+        egress allowlist; a private worker address or `127.0.0.1` is not
+        reachable from the E2B cloud.
+
+=== "OpenYuanrong"
+
+    **Remote or self-hosted service.** [OpenYuanrong](https://docs.openyuanrong.org/zh-cn/latest/index.html) provides elastic sandbox management for distributed agent workloads.
+
+    Completed commands preserve their exit code, stdout, and stderr, including nonzero
+    exits. These are command results; SDK exceptions still use the shared sandbox error policy.
+
+    Install the sandbox SDK:
+
+    ```bash
+    pip install openyuanrong-sandbox
+    ```
+
+    Configure the service endpoint and credentials through environment variables:
+
+    ```bash
+    export OPENYUANRONG_SERVER_ADDRESS="<server-address>"
+    export OPENYUANRONG_TOKEN="<token>"
+    # Optional: TLS for the frontend (default "1"). Set to "0" for plain HTTP.
+    export OPENYUANRONG_TLS="1"
+    ```
+
+    Configure the image, lifecycle timeout, and optional resource limits, mounts, and reverse tunnel:
+
+    ```python
+    from uni_agent.sandbox import SandboxConfig
+
+    config = SandboxConfig(
+        provider="openyuanrong",
+        image="python:3.12",
+        runtime_timeout=3600,
+        image_mounts=[
+            {"image": "<tool-image>", "mount_path": "/opt/tool"},
+        ],
+        executable_paths={"tool": "/opt/tool/bin/tool"},
+        sandbox_kwargs={
+            "cpu": 1000,
+            "memory": 2048,
+            "cpu_limit": 4000,
+            "mem_limit": 8192,
+            "idle_timeout": 7200,
+            # Reverse tunnel: let the sandbox reach a local gateway via 127.0.0.1:<proxy_port>.
+            "upstream": "<gateway-host>:<gateway-port>",
+            "proxy_port": 38197,
+            # Forward sandbox ports to the host.
+            "port_forwardings": [8080],
+        },
+    )
+    ```
+
+`image_mounts` allows Uni-Agent to attach self-contained runtime images for black-box
+agent harnesses to task sandboxes while keeping harness dependencies isolated
+from task images; `executable_paths` exposes selected runtime commands.
+
+### Start and Stop the Sandbox
+
+Build the selected provider from its configuration:
+
+```python
+from uni_agent.sandbox import build_sandbox
+
+sandbox = build_sandbox(config)
+```
+
+Entering the async context starts the selected backend. Exiting it releases remote resources:
+
+```python
+async with sandbox:
+    result = await sandbox.exec_shell("...")
+    ...
+```
+
+## Build a ReAct Toolbox
+
+A ReAct agent interacts with the sandbox through tools. The demo binds a stateful shell and a file editor:
+
+```python
+from uni_agent.tools import Toolbox
+
+tool_specs = [
+    {"name": "stateful_shell", "command_timeout": 120},
+    {"name": "str_replace_editor"},
+]
+
+toolbox = Toolbox.from_specs(tool_specs, sandbox=sandbox)
+```
+
+Enter the toolbox and export the model-facing tool schemas:
+
+```python
+async with toolbox.entered(retry=3, timeout=60):
+    schemas = toolbox.schemas()
+```
+
+`stateful_shell` is exposed to the model as `shell`. Tools route their operations through the sandbox backend.
+
+## Run Tool Calls
+
+Use the shell tool to install dependencies and execute commands:
+
+```python
+result = await toolbox.call(
+    "shell",
+    {"command": "pip install -q numpy && echo installed"},
+)
+```
+
+Use the editor to create a Python script inside the sandbox:
+
+```python
+script = "import numpy as np\nprint(int(np.array([1, 2, 4]).sum()))\n"
+
+await toolbox.call(
+    "str_replace_editor",
+    {
+        "command": "create",
+        "path": "/tmp/demo.py",
+        "file_text": script,
+    },
+)
+```
+
+The shell can immediately run the file created by the editor:
+
+```python
+result = await toolbox.call(
+    "shell",
+    {"command": "python3 /tmp/demo.py"},
+)
+print(result)
+```
+
+## Verify Persistence
+
+All tools share the sandbox lifecycle and filesystem:
+
+- Packages installed by one call remain available to later calls.
+- Files written by the editor can be executed and read by the shell.
+- The stateful shell preserves environment variables and its working directory.
+- The editor is stateless; its files persist because they live in the shared sandbox.
+
+For example, a later shell call still sees a previous `cd`:
+
+```python
+await toolbox.call("shell", {"command": "cd /tmp"})
+result = await toolbox.call("shell", {"command": "pwd; python3 demo.py"})
+```
+
+Both `Sandbox` and `Toolbox` use async context managers, so tools are closed and remote resources are released even if a call fails.
+
+## Run the Complete Demo
+
+After configuring a supported backend above, run the complete connectivity and persistence check:
+
+=== "Local"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=local python examples/quickstart/sandbox/demo.py
+    ```
+
+=== "Docker"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=docker python examples/quickstart/sandbox/demo.py
+    ```
+
+=== "veFaaS"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=vefaas python examples/quickstart/sandbox/demo.py
+    ```
+
+=== "Modal"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=modal python examples/quickstart/sandbox/demo.py
+    ```
+
+=== "E2B"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=e2b IMAGE=python:3.12 \
+      python examples/quickstart/sandbox/demo.py
+    ```
+
+=== "OpenYuanrong"
+
+    ```bash
+    DEBUG_MODE=1 SANDBOX_PROVIDER=openyuanrong python examples/quickstart/sandbox/demo.py
+    ```
+
+Next, [verify task oracle solutions](oracle-verification.md) against the configured sandbox before running agent inference or training.

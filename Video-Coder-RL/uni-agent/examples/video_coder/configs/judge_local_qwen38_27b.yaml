@@ -1,0 +1,12 @@
+# Overlay: judge with the locally served Qwen3.8-27B (vLLM) instead of an external API model.
+# Needs the same VLLM_API_BASE as the student overlay. Note: when the student is also Qwen3.8-27B, the model
+# judges its own renders, which tends to be lenient.
+harness:
+  judge:
+    model: hosted_vllm/Qwen3.8-27B
+    api: chat
+    model_kwargs:
+      api_base: ${VLLM_API_BASE}
+      temperature: 0.6
+      top_p: 0.95
+      max_tokens: 16384

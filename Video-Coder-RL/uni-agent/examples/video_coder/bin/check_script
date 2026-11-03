@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Agent-facing wrapper: static checks for a bpy script (default main.py in the current directory).
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+py="${VCSFT_PYTHON:-$root/.venv/bin/python}"
+PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m vcsft.static_check "$@"
