@@ -44,7 +44,7 @@ python -m uni_agent.tasks.video_coder.preprocess --tasks ../../data/video-coder-
     --out data/video_coder_val.parquet --require-gt --gt-request-sidecar
 ```
 
-Next, launch the video generator for the similarity reward. Here we use [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) (Ref2VA), served with SGLang. Each server uses 4 GPUs, and more servers make each step faster. We used 4 servers. See [`Minimax-H3-server`](../Minimax-H3-server) for details.
+Next, launch the video generator for the video reward. Here we use [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) (Ref2VA), served with SGLang. Each server uses 4 GPUs, and more servers make each step faster. We used 4 servers. See [`Minimax-H3-server`](../Minimax-H3-server) for details.
 
 ```bash
 cd Minimax-H3-server

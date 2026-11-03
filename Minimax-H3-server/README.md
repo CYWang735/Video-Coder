@@ -148,9 +148,9 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 PORT=30021 bash run_batch.sh m.jsonl outputs/s1 --s
 每个分片用自己的输出目录(`results.jsonl` 不会被两个进程同时写);全部跑完后把各目录里的 `.mp4` 合到一起即可。
 **分片数和编号一旦开始就不要改**,否则续跑时分到每个分片的视频会变。
 
-## 作为 RL 相似度奖励的服务
+## 作为 RL video reward 的服务
 
-Video-Coder-RL 的相似度奖励通过 HTTP 调用这里部署的 Ref2VA 服务(见 `../Video-Coder-RL/README.md`)。
+Video-Coder-RL 的 video reward 通过 HTTP 调用这里部署的 Ref2VA 服务(见 `../Video-Coder-RL/README.md`)。
 每台 4 卡机器起一个常驻服务,训练端把所有服务的地址填进 task config 的 `similarity.ref2va.base_urls`:
 
 ```bash
