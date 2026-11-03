@@ -1,237 +1,109 @@
-# Video-Coder: Reinforcing Agentic Coding for Video Generation 
+# Video-Coder: Reinforcing Agentic Coding for Video Generation
 
-[[📖 Paper]()] [[🤗 Video-Coder-9B-model]()] [🤗[Video-Coder-SFT-model]()] [[🤗 Video-Coder-train-data]()] [🤗 [OneThinker-eval]()]
-
-
+[Overview](#-about-video-coder) · [Datasets](#-datasets) · [Results](#-performance) · [Training](#-training) · [Video Generation](#-video-generation)
 
 ## 👀 About Video-Coder
 
 <div align="center">
-  <img src="./assets/teaser.png" alt="Descriptive alt text" width="95%">
+  <img src="./assets/teaser.png" alt="Video-Coder overview" width="100%">
 </div>
 
+We introduce **Video-Coder**, a code-driven video generation agent that autonomously writes and executes Blender Python programs to construct dynamic 3D scenes. The rendered **Draft Video** provides explicit structure and motion signals to downstream video generators.
 
-We introduce **Video-Coder**, the first attempt to train a **code-driven video generation agent**, which autonomously writes and executes code to construct a dynamic 3D scene (Draft Video) that provides structure and motion signals to downstream video generators.
+We develop the **Video-Coder Harness**, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback. The same harness supports trajectory synthesis, agentic reinforcement learning, and inference.
 
-We curate two high-quality datasets, **Video-Coder-SFT-10k** and **Video-Coder-RL-4k**, which contain diverse prompts and ground-truth reference videos. We further develop the **Video-Coder Harness**, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback for agent training and inference.
+Video-Coder is trained with supervised fine-tuning followed by **harness-native agentic reinforcement learning** with dual reward feedback. An execution reward encourages executable scene programs, while a video reward evaluates the generated results. An annealing strategy gradually reduces the execution reward during training, placing greater emphasis on video quality in later stages.
 
-We then train Video-Coder with SFT followed by **harness-native agentic reinforcement learning** with dual reward feedback, which combines execution-based and video-based rewards. 
-Additionally, we design an annealing training strategy
-that gradually reduces the execution reward over time, allowing the model to rely more  on the video reward in the later training stages.
+## 📍 Highlights
 
-Experiments show that Video-Coder achieves significant gains, improving Minimax-H3 by approximately **7 points on PhyGenBench and 24 points on VBench-2.0**.
+- **Executable 3D scene programs:** explicitly represent objects, spatial layout, motion, and camera behavior.
+- **Iterative refinement:** write, execute, inspect, and revise programs through the Video-Coder Harness.
+- **Two-stage training:** initialize with SFT, then improve generation through agentic RL with execution and video rewards.
+- **Transfer across generators:** use the trained agent with MiniMax-H3 and OmniWeaving.
+- **Physics-focused evaluation:** assess generation on PhyGenBench and VBench-2.0.
 
-All code, models, and data are fully released.
+## 🔍 Datasets
 
+We construct **Video-Coder-SFT-10k** and **Video-Coder-RL-4k** for training the coding agent.
 
-## 🔥 News
-- [2026/11/06] We release the code, model, data of OneThinker
+| Dataset | Size | Purpose |
+| --- | --- | --- |
+| Video-Coder-SFT-10k | 10,000 | Supervised learning from agentic coding trajectories |
+| Video-Coder-RL-4k | 4,000 | Agentic reinforcement learning with reference videos |
 
-## 📍 Features
-
-+ Support Qwen3.5-VL Training
-+ Support Image-Video mixed training
-
-## 🔍 Dataset
-
-Our dataset covers both image and video modalities and spans a series of fundamental visual reasoning tasks, including rule-based QA, open-ended QA, captioning, spatial grounding, temporal grounding, spatio-temporal grounding, tracking, and segmentation
-
-<div align="center">
-  <img src="./assets/dataset.png" alt="Descriptive alt text" width="90%">
-</div>
-
-To enable effective SFT initialization for reasoning, we leverage a strong proprietary model, Seed1.5-VL  to produce CoT annotations.
+The data construction pipeline collects diverse text prompts, generates multi-turn coding trajectories with the Video-Coder Harness, synthesizes ground-truth reference videos from prompts and draft videos, and applies quality filtering.
 
 ## 🏆 Performance
 
-Our model obtains significant performance gains after training based on Qwen3-VL-Instruct-8B across diverse visual tasks. For examle, OneThinker-8B reaches 70.6% accuracy on MMMU, 64.3% on MathVerse, 66.2% on VideoMMMU, 93.7 on Refcoco-testA, 54.9 J&F on ReasonVOS.
+### PhyGenBench
 
-
-
-<div align="center">
-  <img src="./assets/performance.png" alt="Descriptive alt text" width="90%">
-</div>
-
-
-
-Besides, we also observe beneficial cross-task and cross-modality knowledge transfer, along with promising preliminary zero-shot generalization under unified training. This highlights the  effectiveness and generalization ability of our unified training framework across diverse visual tasks. 
-
-
-## 🎥 Demo
-
- Some reasoning examples are as follows.
-
-<details open>
-<summary>Demo 1 (QA)</summary>
-
-
+**Video-Coder-9B + MiniMax-H3** achieves an average score of **0.67**, compared with **0.61** for MiniMax-H3 alone. It obtains scores of **0.68 / 0.79 / 0.60 / 0.61** on Mechanics, Optics, Thermal, and Material, respectively.
 
 <div align="center">
-  <img src="assets/math.png" width="36%">
+  <img src="./assets/table1.png" alt="PhyGenBench results" width="100%">
 </div>
 
-**Question:**  
-As shown in the figure, AB is the diameter of ⊙O, and points C and D are on ⊙O. If ∠ABD = 50.0, then the degree of ∠BCD is () Choices: (A) 30° (B) 35° (C) 40° (D) 45°
+### VBench-2.0
 
-<details>
-<summary><b>Thinking Process (click to expand)</b></summary>
-&lt;think&gt; Got it, let's try to solve this problem step by step. First, let's recall some circle theorems. \n\nWe know that AB is the diameter of circle O. So, any angle inscribed in a semicircle is a right angle. That means ∠ACB should be 90° because triangle ACB is inscribed in the semicircle with AB as the diameter. Now, let's look at ∠ABD. The problem says ∠ABD is 50°. Let's think about quadrilateral or triangles here. Maybe we can use the inscribed angle theorem, which states that an inscribed angle is half the measure of its intercepted arc. First, let's consider arc AD or arc AB. Since AB is the diameter, the arc AB is 180°. ∠ABD is an inscribed angle that intercepts arc AD. So ∠ABD intercepts arc AD, so the measure of arc AD would be 2 × ∠ABD = 2 × 50° = 100°? Wait, maybe not. Let's check another angle. Alternatively, ∠BAD and ∠BCD might be related. Let's see. ∠BAD is an inscribed angle intercepting arc BD. ∠BCD is also an inscribed angle intercepting arc BD. So they might be equal or supplementary?
-
-
-
-Wait, AB is the diameter, so ∠ADB is also a right angle (since angle inscribed in a semicircle). So triangle ADB is a right-angled triangle at D. In triangle ADB, ∠ABD is 50°, so ∠BAD = 90° - 50° = 40°. \n\nNow, ∠BCD and ∠BAD are inscribed angles that intercept the same arc BD. Because ∠BAD intercepts arc BD, and ∠BCD also intercepts arc BD. So they should be equal. Therefore, ∠BCD = ∠BAD = 40°. Let's verify again.\n\nAB is diameter, so ∠ACB = 90°, ∠ADB = 90°. In △ABD, ∠BAD = 90° - 50° = 40°. ∠BCD and ∠BAD both subtend arc BD, so they are equal. Hence, ∠BCD is 40°, which is option C.&lt;/think&gt;
-
-\<answe\>C\</answer\>
-
-</details>
-
-</details>
-
-<details open>
-<summary>Demo 2 (Tracking)</summary>
-
-
-
-
+**Video-Coder-9B + MiniMax-H3** achieves an average score of **78.19%**, improving over MiniMax-H3 (**54.58%**) by **23.61 percentage points**. Its Mechanics score reaches **88.67%**, and its Thermotics score reaches **70.88%**.
 
 <div align="center">
-  <img src="assets/got_car.gif" width="60%">
+  <img src="./assets/table2.png" alt="VBench-2.0 results" width="100%">
 </div>
 
-**Question:**  
-Given the bounding box [537,403,768,703] of the target object in the first frame, track this object in each frame.
+## 🎥 Qualitative Results
 
-<details>
-<summary><b>Thinking Process (click to expand)</b></summary>
-&lt;think&gt; To track the white Ford Mustang convertible across each second up to 32 seconds, observe its movement pattern: the car travels forward along the road, so its position in the frame shifts subtly over time. Initially, the car occupies a central area of the frame. As seconds pass, the car moves closer to the camera, causing its bounding box to adjust incrementally. Over each second, the car’s position shifts slightly toward the lower portion of the frame (as it approaches the camera) and its bounding box expands a bit to account for the closer perspective. Throughout the sequence, the car remains the central focus, with smooth, gradual changes in its placement and the size of the bounding box reflecting its forward motion and proximity to the camera.&lt;/think&gt;
-
-\<answer\>{"boxes": {"1": [537, 403, 768, 703], "2": [537, 353, 797, 690], "3": [532, 323, 827, 687], "4": [519, 282, 850, 690], "5": [515, 260, 877, 694], "6": [510, 246, 887, 694], "7": [509, 246, 897, 703], "8": [509, 232, 947, 710], "9": [509, 210, 972, 732], "10": [482, 200, 989, 787], "11": [469, 196, 995, 856], "12": [459, 203, 995, 929], "13": [422, 221, 995, 987], "14": [397, 244, 995, 994], "15": [389, 250, 995, 994], "16": [382, 250, 995, 994], "17": [370, 250, 995, 994], "18": [364, 250, 995, 994], "19": [362, 250, 995, 994], "20": [354, 244, 995, 994], "21": [350, 239, 995, 994], "22": [347, 239, 995, 994], "23": [347, 244, 965, 979], "24": [350, 244, 945, 944], "25": [350, 244, 904, 910], "26": [350, 244, 845, 860], "27": [347, 244, 797, 779], "28": [347, 244, 772, 750], "29": [350, 250, 764, 742], "30": [350, 250, 757, 739], "31": [350, 250, 750, 739], "32": [350, 250, 750, 739]}}\</answer\>
-
-</details>
-
-</details>
-
-<details open>
-<summary>Demo 3 (Segmentation)</summary>
-
-
+Video-Coder constructs draft videos that guide the generated videos through explicit object layout, motion, and camera control. The examples below show vehicles, human actions, and object interactions.
 
 <div align="center">
-  <img src="assets/lalaland.gif" width="60%">
+  <img src="./assets/qualitative.png" alt="Prompts, draft videos, and generated videos" width="100%">
 </div>
 
-**Question:**  
-Pleae segment the shorter one.
+## 📐 Getting Started
 
-<details>
-<summary><b>Thinking Process (click to expand)</b></summary>
-&lt;think&gt; To identify the shorter individual, focus on the person in the yellow dress. At the start of the video (around 0.0 seconds), this person is clearly visible. For positive reference points, select areas on the yellow dress itself—such as the chest, midsection, and skirt. For negative reference points, choose areas outside the person, like the road or the sky in the background.&lt;/think&gt;
+~~~bash
+git clone https://github.com/CYWang735/Video-Coder.git
+cd Video-Coder
+~~~
 
-\<answer\>{"time": 0.0, "boxes": [426, 300, 528, 775], "positive_points": [[454, 450], [468, 550], [472, 650]], "negative_points": [[300, 500], [600, 500], [400, 200]]}\</answer\>
-
-</details>
-
-</details>
-
-
-
-
-
-## 📐 Set up
-
-```bash
-git clone https://github.com/tulerfeng/OneThinker
-cd OneThinker
-
-# build SFT environment
-conda create -n llamafactory python=3.11 
-conda activate llamafactory
-cd LLaMA-Factory
-pip install -e ".[torch,metrics]" --no-build-isolation
-
-# build RL environment
-conda create -n easyr1 python=3.11 
-conda activate easyr1
-cd EasyR1
-pip install -e .
-
-```
-
-For more details for the SFT and RL environment installation, please refer to [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory),  [EasyR1](https://github.com/hiyouga/EasyR1)
-
-Then, download the training datasets [[🤗 OneThinker-train-data](https://huggingface.co/datasets/OneThink/OneThinker-train-data)] and unzip all the data.
-
-The `onethinker_rl_train.json` file is for RL training while `onethinker_sft_image.json` and `onethinker_sft_video.json` is for SFT cold start. The json files end with `_unsampled` are unsampled full set.
-
-
+| Component | Location | Description |
+| --- | --- | --- |
+| Supervised fine-tuning | [Video-Coder-SFT](./Video-Coder-SFT/) | SFT code based on ms-swift |
+| Agentic reinforcement learning | [Video-Coder-RL](./Video-Coder-RL/) | Harness, sandbox, rollout, and reward integration |
+| Video generator | [Minimax-H3-server](./Minimax-H3-server/) | MiniMax-H3 serving and batch generation from draft videos |
 
 ## 🚀 Training
 
-For SFT and RL training, a minimum of 8 × 80GB GPUs is required; alternatively, you may reduce the number of frames or the input resolution.
+### Stage 1: Supervised Fine-Tuning
 
-We first perform SFT cold start.
+The SFT implementation is provided under [Video-Coder-SFT/ms-swift](./Video-Coder-SFT/ms-swift/). Use the SFT checkpoint to initialize the RL stage.
 
-```bash
-bash ./LLaMA-Factory/local_scripts/run_onethinker_sft.sh
-```
-If you want to skip the SFT process, we also provide our SFT model at [🤗[OneThinker-SFT-model](https://huggingface.co/OneThink/OneThinker-SFT-Qwen3-8B)]
+### Stage 2: Agentic Reinforcement Learning
 
-Then, we perform RL training  as follows
+Follow the [RL setup and training guide](./Video-Coder-RL/README.md) to prepare the training environment, Blender sandbox, task data, and video reward services.
 
-```bash
-bash ./EasyR1/local_scripts/run_onethinker_rl.sh
-```
+The main training entry point is:
 
-For setting Ray in multi-node training, please refer to [EasyR1](https://github.com/hiyouga/EasyR1), or you may use single-node training by setting `NNODES=1`. Performing RL training for about 200 steps can already yield strong performance.
+~~~bash
+cd Video-Coder-RL/uni-agent
+bash examples/video_coder/train_video_coder_rl.sh
+~~~
 
-If you want to use model-based rewards for open-ended problem, please use vllm to lanuch [POLAR-7B](https://github.com/InternLM/POLAR) and revised the setting in `/EasyR1/verl/reward_function/onethinker_reward.py`
+Before launching, configure the SFT checkpoint, training and validation data, sandbox paths, and video generator endpoints as described in the RL guide.
 
+## 🔮 Video Generation
 
+Follow the [MiniMax-H3 deployment and generation guide](./Minimax-H3-server/README.md) to convert draft videos into generated videos.
 
-## 🔮 Inference & Evaluation
-Since OneThinker-8B shares the same architecture as Qwen3-VL-8B, it naturally supports easy and efficient inference.
+~~~bash
+cd Minimax-H3-server
+bash setup_env.sh
+bash download_model.sh
+bash run_batch.sh examples/demo/manifest.jsonl outputs/demo
+~~~
 
-For the majority of tasks and benchmarks, we recommend using our provided json files and scripts for easier evaluation. 
-
-The json files can be downloaded at: [🤗 [OneThinker-eval](https://huggingface.co/datasets/OneThink/OneThinker-eval)]
-
-Download the trained model [[🤗 OneThinker-8B-model](https://huggingface.co/OneThink/OneThinker-8B)]
-
-Conduct evaluation on all benchmarks using the following scripts
-
-```bash
-bash ./Evaluation/Eval/eval_bench_all.sh
-```
-If you want to perform evaluation on segmentation tasks, please download and install [sam2](https://github.com/facebookresearch/sam2) and revise the related path in `/Evaluation/Eval/seg_post_sam2.py` 
-
-For image QA and part of video QA, we use  [VLMEvalKit](https://github.com/open-compass/VLMEvalKit) for evaluation, please install corresponding environment and run:
-
-```bash
-bash ./Evaluation/VLMEvalKit/local_scripts/eval_vlmevalkit.sh
-```
-
-For infernce on a single example, you may refer to:
-
-```bash
-python ./Evaluation/inference_single/inference.py
-```
-
-
+For custom batches, provide a JSONL manifest containing the draft video path and scene description for each sample. See the generator guide for the manifest schema and multi-server configuration.
 
 ## Acknowledgements
 
-We sincerely appreciate the contributions of the open-source community. The related projects are as follows: [Video-R1](https://github.com/tulerfeng/Video-R1), [DeepSeek-R1](https://github.com/deepseek-ai/DeepSeek-R1), [EasyR1](https://github.com/hiyouga/EasyR1), [verl](https://github.com/volcengine/verl),  [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory),  [sam2](https://github.com/facebookresearch/sam2), [VLMEvalKit](https://github.com/open-compass/VLMEvalKit)
-
-## Citations
-
-If you find our work helpful for your research, please consider citing our work.   
-
-```
-@article{feng2025onethinker,
-  title={OneThinker: All-in-one Reasoning Model for Image and Video},
-  author={Feng, Kaituo and Zhang, Manyuan and Li, Hongyu and Fan, Kaixuan and Chen, Shuang and Jiang, Yilei and Zheng, Dian and Sun, Peiwen and Zhang, Yiyuan and Sun, Haoze and others},
-  journal={arXiv preprint arXiv:2512.03043},
-  year={2025}
-}
-```
-
+We thank the open-source projects that support this implementation, including [ms-swift](https://github.com/modelscope/ms-swift), [verl](https://github.com/volcengine/verl), [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent), and [SGLang](https://github.com/sgl-project/sglang).
