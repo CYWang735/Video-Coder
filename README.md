@@ -10,6 +10,7 @@
   <img src="./assets/teaser.png" alt="Descriptive alt text" width="95%">
 </div>
 
+
 We introduce **Video-Coder**, the first attempt to train a **code-driven video generation agent**, which autonomously writes and executes code to construct a dynamic 3D scene (Draft Video) that provides structure and motion signals to downstream video generators.
 
 We curate two high-quality datasets, **Video-Coder-SFT-10k** and **Video-Coder-RL-4k**, which contain diverse prompts and ground-truth reference videos. We further develop the **Video-Coder Harness**, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback for agent training and inference.
