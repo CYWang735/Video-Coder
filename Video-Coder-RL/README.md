@@ -36,7 +36,6 @@ The reward code is in [`uni_agent/tasks/video_coder/`](uni-agent/uni_agent/tasks
 | `examples/quickstart/training/train_qwen3p5_fsdp.sh` | The verl trainer command that the launcher runs |
 | `examples/quickstart/training/task_config_video_coder_similarity_apptainer.yaml` | Task config: reward, H3, judge, sandbox and agent limits |
 | `examples/video_coder/{run_agent.py,vcsft/,bin/,configs/}` | Agent harness. It is bound read-only into the sandbox at `/opt/video-coder` |
-| `examples/video_coder/unpack_env.sh` | Unpacks the packed conda env onto a node-local disk |
 | `examples/video_coder/install_harness.sh` | Adds `imageio-ffmpeg` to the mini-swe-agent tool dir and checks the harness imports |
 | `uni_agent/tasks/video_coder/preprocess.py` | Converts task files (.jsonl/.json) into training parquet |
 | `runtime_env.yaml` | Ray runtime env, including `FLA_TILELANG=0` and the cache paths |
@@ -44,9 +43,7 @@ The reward code is in [`uni_agent/tasks/video_coder/`](uni-agent/uni_agent/tasks
 ## Requirements
 
 - **GPUs:** H100 80 GB. The run in this README used 2 nodes × 4 GPUs.
-- **Python env:** a conda env with uni-agent and verl installed, plus TransferQueue 0.1.11 and flash-linear-attention 0.5.2.
-  - flash-linear-attention is needed for long Qwen3.5 rollouts. Without it, GatedDeltaNet falls back to a torch reference that runs out of memory at about 100k tokens.
-  - `unpack_env.sh` unpacks a packed copy of this env to `/scratch/$USER/envs/uni-agent-v3`.
+- **Python env:** Python 3.12 with vLLM, the bundled verl, TransferQueue and flash-linear-attention. See [Setup](#setup).
 - **Sandbox:**
   - An Apptainer image with Blender 4.5 / bpy (`bpy-agent.sif`).
   - A mini-swe-agent ≥ 2.4 tool dir, bound at `/opt/mini-swe-agent`.
@@ -56,15 +53,39 @@ The reward code is in [`uni_agent/tasks/video_coder/`](uni-agent/uni_agent/tasks
 
 ## Setup
 
-1. Unpack the env and prepare the harness (once per node and tool dir):
+1. Build the training env. The versions below are the ones we trained with.
 
    ```bash
-   bash examples/video_coder/unpack_env.sh          # -> /scratch/$USER/envs/uni-agent-v3
-   export PATH=/scratch/$USER/envs/uni-agent-v3/bin:$PATH
-   bash examples/video_coder/install_harness.sh     # needs internet once
+   conda create -n video-coder-rl python=3.12 -y
+   conda activate video-coder-rl
+
+   # inference + training stack (vLLM pulls a matching torch)
+   pip install vllm==0.30.0 torch==2.13.0 transformers==5.17.0 ray[default]==2.58.0 \
+       tensordict==0.14.2 accelerate==1.15.0 peft==0.21.1 qwen-vl-utils==0.0.14
+   # verl's other requirements. Skip its transformers / tensordict pins: Qwen3.5 needs the newer
+   # versions above. TransferQueue is installed separately below.
+   grep -vE '^(transformers|tensordict|TransferQueue)' verl/requirements.txt > /tmp/verl-req.txt
+   pip install -r /tmp/verl-req.txt
+   # the bundled verl (with the Qwen3.5 fused-output-head fix)
+   pip install --no-deps -e ./verl
+   # verl v1 trainer data plane; --no-deps keeps the versions above
+   pip install --no-deps transferqueue==0.1.11
+   # fast GatedDeltaNet kernels for Qwen3.5. Without them transformers falls back to a torch
+   # reference that is ~100x slower and runs out of memory at ~100k tokens.
+   pip install --no-deps fla-core==0.5.2 flash-linear-attention==0.5.2
+   # reward / judge clients and data tools
+   pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
    ```
 
-2. Build the training data. Each record needs a task prompt and a ground-truth video, `gt_video`. `--gt-request-sidecar` reads each GT video's H3 request from `<gt>.json`. The run below used 1,660 training scenes.
+   `runtime_env.yaml` sets `FLA_TILELANG=0`. This makes flash-linear-attention use its Triton kernels, which serve any sequence length. Without it, TileLang (if installed) compiles a new kernel for every sequence length.
+
+2. Prepare the sandbox harness (once per tool dir; needs internet once):
+
+   ```bash
+   bash examples/video_coder/install_harness.sh /path/to/mini-swe-agent-tool-dir
+   ```
+
+3. Build the training data. Each record needs a task prompt and a ground-truth video, `gt_video`. `--gt-request-sidecar` reads each GT video's H3 request from `<gt>.json`. The run below used 1,660 training scenes.
 
    ```bash
    python -m uni_agent.tasks.video_coder.preprocess --tasks train.jsonl \
@@ -73,7 +94,7 @@ The reward code is in [`uni_agent/tasks/video_coder/`](uni-agent/uni_agent/tasks
        --out ~/data/uni_agent/video_coder_val.parquet --require-gt --gt-request-sidecar
    ```
 
-3. Edit the task config, `task_config_video_coder_similarity_apptainer.yaml`:
+4. Edit the task config, `task_config_video_coder_similarity_apptainer.yaml`:
    - `similarity.ref2va.base_urls`: the list of H3 servers. Requests go to the least-loaded server.
    - `similarity.ref2va.shared_dir`: a directory that both the trainer and the H3 servers can see.
    - `similarity.ref2va.request`: must match the recipe that produced the GT videos.
