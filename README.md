@@ -22,16 +22,6 @@ Video-Coder is trained with supervised fine-tuning followed by **harness-native 
 - **Transfer across generators:** use the trained agent with MiniMax-H3 and OmniWeaving.
 - **Physics-focused evaluation:** assess generation on PhyGenBench and VBench-2.0.
 
-## 🔍 Datasets
-
-We construct **Video-Coder-SFT-10k** and **Video-Coder-RL-4k** for training the coding agent.
-
-| Dataset | Size | Purpose |
-| --- | --- | --- |
-| Video-Coder-SFT-10k | 10,000 | Supervised learning from agentic coding trajectories |
-| Video-Coder-RL-4k | 4,000 | Agentic reinforcement learning with reference videos |
-
-The data construction pipeline collects diverse text prompts, generates multi-turn coding trajectories with the Video-Coder Harness, synthesizes ground-truth reference videos from prompts and draft videos, and applies quality filtering.
 
 ## 🏆 Performance
 
@@ -59,20 +49,36 @@ Video-Coder constructs draft videos that guide the generated videos through expl
   <img src="./assets/qualitative.png" alt="Prompts, draft videos, and generated videos" width="100%">
 </div>
 
-## 📐 Getting Started
-
-~~~bash
-git clone https://github.com/CYWang735/Video-Coder.git
-cd Video-Coder
-~~~
-
-| Component | Location | Description |
-| --- | --- | --- |
-| Supervised fine-tuning | [Video-Coder-SFT](./Video-Coder-SFT/) | SFT code based on ms-swift |
-| Agentic reinforcement learning | [Video-Coder-RL](./Video-Coder-RL/) | Harness, sandbox, rollout, and reward integration |
-| Video generator | [Minimax-H3-server](./Minimax-H3-server/) | MiniMax-H3 serving and batch generation from draft videos |
 
 ## 🚀 Training
+
+### Setup
+
+```bash
+git clone https://github.com/tulerfeng/OneThinker
+cd OneThinker
+
+# build SFT environment
+conda create -n ms-swift python=3.12 
+conda activate ms-swift
+cd ms-swift
+pip install ms-swift -U
+
+
+# build RL environment
+conda create -n uni-agent python=3.12 
+conda activate uni-agent
+cd uni-agent
+
+
+```
+
+For more details for the SFT and RL environment installation, please refer to [ms-swift](https://github.com/modelscope/ms-swift),  [uni-agent](https://github.com/verl-project/uni-agent)
+
+Download the training datasets [[🤗 Video-Coder-train-data]()] and unzip all the data. Then update the image paths in the JSON file to match your local directory.
+
+The `rl_train.json` file is for RL training while `sft_data.json` is for SFT training. 
+
 
 ### Stage 1: Supervised Fine-Tuning
 
