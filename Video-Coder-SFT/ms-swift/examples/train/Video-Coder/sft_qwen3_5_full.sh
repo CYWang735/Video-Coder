@@ -1,6 +1,6 @@
 MODEL=Qwen/Qwen3.5-9B
-OUT=
-DATA=
+OUT=./qwen35-sft
+DATA=./data/
 MAX_LENGTH=${MAX_LENGTH:-131072}
 DS=${DS:-zero3}
 
@@ -18,8 +18,6 @@ GRAD_ACC=$(( GLOBAL_BATCH / DP ))
 python -c "import fla" 2>/dev/null || echo "WARNING: flash-linear-attention not installed; Qwen3.5 linear attention uses the slow torch fallback"
 if python -c "import flash_attn" 2>/dev/null; then ATTN=flash_attn; else ATTN=sdpa; echo "WARNING: flash-attn not installed; using sdpa"; fi
 
-# Triton (used by DeepSpeed / fla) caches on NFS by default, which can hang; keep it on node-local disk.
-export TRITON_CACHE_DIR=/tmp/$USER/triton_cache
 
 PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True' \
 CELOSS_PARALLEL_SIZE=2048 \
