@@ -1,4 +1,0 @@
-# Overlay for Kimi K3, applied after configs/kimi_k3.yaml: put the run_blender frames in a `user` message that follows
-# the tool message, for the case that the API refuses images inside `tool` messages.
-model:
-  model_class: vcsft.models.VisualChatUserModel
