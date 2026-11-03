@@ -48,7 +48,7 @@ The reward code is in [`uni_agent/tasks/video_coder/`](uni-agent/uni_agent/tasks
   - An Apptainer image with Blender 4.5 / bpy (`bpy-agent.sif`).
   - A mini-swe-agent ≥ 2.4 tool dir, bound at `/opt/mini-swe-agent`.
 - **Policy:** a Qwen3.5-9B Video-Coder SFT checkpoint in HF format. See [`../Video-Coder-SFT`](../Video-Coder-SFT).
-- **MiniMax-H3 Ref2VA servers:** SGLang `/v1/videos` endpoints, deployed separately. They must read `ref2va.shared_dir` at the same path as the trainer.
+- **MiniMax-H3 Ref2VA servers:** SGLang `/v1/videos` endpoints, deployed with [`../Minimax-H3-server`](../Minimax-H3-server) (one server per 4 GPUs). They must read `ref2va.shared_dir` at the same path as the trainer.
 - **Judge key:** a DashScope API key in `DASHSCOPE_API_KEY`, exported in the shell that starts Ray. Never put it in a config file.
 
 ## Setup
