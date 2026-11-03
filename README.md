@@ -7,7 +7,7 @@
 ## 👀 About Video-Coder
 
 <div align="center">
-  <img src="./assets/teaser.png" alt="Descriptive alt text" width="95%">
+  <img src="./assets/teaser" alt="Descriptive alt text" width="95%">
 </div>
 
 
