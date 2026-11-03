@@ -10,9 +10,9 @@ import httpx
 import pytest
 
 from uni_agent.agents.base import AgentResult
-from uni_agent.tasks.video_coder import similarity as sim_mod
-from uni_agent.tasks.video_coder.similarity import (
-    SimilarityRewardConfig,
+from uni_agent.tasks.video_coder import video_reward as sim_mod
+from uni_agent.tasks.video_coder.video_reward import (
+    VideoRewardConfig,
     combine_reward,
     exe_weight,
     parse_score,
@@ -21,13 +21,13 @@ from uni_agent.tasks.video_coder.similarity import (
 from uni_agent.tasks.video_coder.task import VideoCoderTask, VideoCoderTaskConfig
 
 
-def _sim_cfg(tmp_path, **overrides) -> SimilarityRewardConfig:
+def _sim_cfg(tmp_path, **overrides) -> VideoRewardConfig:
     raw = {
         "ref2va": {"base_url": "http://h3:30010", "shared_dir": str(tmp_path / "shared"), "poll_interval": 0},
         "judge": {"base_url": "http://vlm:8000/v1", "model": "judge-vlm", "rubric": "overall"},
         **overrides,
     }
-    return SimilarityRewardConfig(**raw)
+    return VideoRewardConfig(**raw)
 
 
 class FakeServices:
@@ -122,7 +122,7 @@ def test_exe_anneal_steps_auto_uses_total_training_steps(tmp_path):
     assert exe_weight(cfg, 50, None) == 1.0  # no trainer total: not annealed
     assert exe_weight(cfg.model_copy(update={"exe_anneal_steps": None}), 50, 100) == 1.0
     with pytest.raises(ValueError):
-        SimilarityRewardConfig(**{**cfg.model_dump(), "exe_anneal_steps": 0})
+        VideoRewardConfig(**{**cfg.model_dump(), "exe_anneal_steps": 0})
 
 
 @pytest.mark.cpu
@@ -137,7 +137,7 @@ async def test_score_rollout_runs_ref2va_then_judge(tmp_path):
         cfg, b"WHITE-VIDEO", str(gt), "a ball rolls", tag="s1", transport=httpx.MockTransport(services), sleep=_no_sleep
     )
 
-    assert out["similarity"] == pytest.approx(0.7)
+    assert out["video_reward"] == pytest.approx(0.7)
     body = services.submitted
     assert body["task"] == "ref2va" and body["prompt"] == "a ball rolls" and body["seed"] == 2029
     [cond] = body["conditions"]
@@ -190,7 +190,7 @@ class FakeAgent:
         return AgentResult(output=out, transcript=list(messages), info={}, finished=self.accepted)
 
 
-def _task(tmp_path, monkeypatch, *, accepted, similarity=True, gt_exists=True, on_error="raise", scorer=None):
+def _task(tmp_path, monkeypatch, *, accepted, video_reward=True, gt_exists=True, on_error="raise", scorer=None):
     gt = tmp_path / "gt.mp4"
     if gt_exists:
         gt.write_bytes(b"GT")
@@ -199,8 +199,8 @@ def _task(tmp_path, monkeypatch, *, accepted, similarity=True, gt_exists=True, o
         "prompt": [{"role": "user", "content": "a ball rolls"}],
         "metadata": {"id": "s1", "gt_video": str(gt)},
     }
-    if similarity:
-        raw["similarity"] = {**_sim_cfg(tmp_path).model_dump(), "on_error": on_error}
+    if video_reward:
+        raw["video_reward"] = {**_sim_cfg(tmp_path).model_dump(), "on_error": on_error}
     task = VideoCoderTask(VideoCoderTaskConfig(**raw))
     sandbox = FakeSandbox()
 
@@ -219,7 +219,7 @@ def _task(tmp_path, monkeypatch, *, accepted, similarity=True, gt_exists=True, o
         descriptions.append(description)
         if scorer is not None:
             return await scorer()
-        return {"similarity": 0.8, "judge_reply": '{"score": 8}'}
+        return {"video_reward": 0.8, "judge_reply": '{"score": 8}'}
 
     monkeypatch.setattr("uni_agent.tasks.video_coder.task.score_rollout", fake_score)
     return task, sandbox, calls, gt
@@ -227,7 +227,7 @@ def _task(tmp_path, monkeypatch, *, accepted, similarity=True, gt_exists=True, o
 
 @pytest.mark.cpu
 @pytest.mark.asyncio
-async def test_task_accepted_rollout_gets_weighted_similarity(tmp_path, monkeypatch):
+async def test_task_accepted_rollout_gets_weighted_video_reward(tmp_path, monkeypatch):
     task, sandbox, calls, gt = _task(tmp_path, monkeypatch, accepted=True)
     result = await task.run()
     assert result.reward == pytest.approx(1.4)  # 1.0 * 1 + 0.5 * 0.8
@@ -237,7 +237,7 @@ async def test_task_accepted_rollout_gets_weighted_similarity(tmp_path, monkeypa
     assert (render, gt_video, tag) == (b"RENDER", str(gt), "s1")
     assert "Scene Description:\na ball rolls\n" in prompt and prompt.endswith("Reference Video:\n<Video 1>")
     assert "{{" not in prompt
-    assert result.extra_info["similarity"]["similarity"] == 0.8
+    assert result.extra_info["video_reward"]["video_reward"] == 0.8
 
 
 @pytest.mark.cpu
@@ -261,8 +261,8 @@ async def test_task_unaccepted_rollout_is_not_scored(tmp_path, monkeypatch):
 
 @pytest.mark.cpu
 @pytest.mark.asyncio
-async def test_task_without_similarity_keeps_acceptance_reward(tmp_path, monkeypatch):
-    task, sandbox, calls, _ = _task(tmp_path, monkeypatch, accepted=True, similarity=False)
+async def test_task_without_video_reward_keeps_acceptance_reward(tmp_path, monkeypatch):
+    task, sandbox, calls, _ = _task(tmp_path, monkeypatch, accepted=True, video_reward=False)
     result = await task.run()
     assert result.reward == 1.0 and calls == [] and sandbox.reads == []
 
@@ -275,7 +275,7 @@ async def test_task_scoring_error_policies(tmp_path, monkeypatch):
 
     task, *_ = _task(tmp_path, monkeypatch, accepted=True, on_error="zero", scorer=boom)
     result = await task.run()
-    assert result.reward == 1.0 and "ConnectError" in result.extra_info["similarity"]["error"]
+    assert result.reward == 1.0 and "ConnectError" in result.extra_info["video_reward"]["error"]
 
     (tmp_path / "b").mkdir()
     task, *_ = _task(tmp_path / "b", monkeypatch, accepted=True, on_error="raise", scorer=boom)
@@ -340,7 +340,7 @@ def test_server_order_prefers_least_loaded(monkeypatch):
 
 @pytest.mark.cpu
 def test_single_base_url_is_accepted(tmp_path):
-    cfg = SimilarityRewardConfig(
+    cfg = VideoRewardConfig(
         ref2va={"base_url": "http://h3:1", "shared_dir": str(tmp_path)}, judge={"base_url": "http://j/v1", "model": "m"}
     )
     assert cfg.ref2va.base_urls == ["http://h3:1"]
@@ -422,7 +422,7 @@ async def test_poll_rides_out_transient_errors_but_not_forever(tmp_path, monkeyp
     gt.write_bytes(b"GT")
     cfg = _sim_cfg(tmp_path)  # max_poll_errors=5
     out = await score_rollout(cfg, b"W", str(gt), "p", transport=httpx.MockTransport(Flaky(3)), sleep=_no_sleep)
-    assert out["similarity"] == pytest.approx(0.7)
+    assert out["video_reward"] == pytest.approx(0.7)
 
     with pytest.raises(RuntimeError, match="failed 6 times"):
         await score_rollout(cfg, b"W", str(gt), "p", transport=httpx.MockTransport(Flaky(100)), sleep=_no_sleep)
@@ -470,8 +470,8 @@ async def test_judge_streaming_reply_is_joined(tmp_path):
     ref, cand = tmp_path / "r.mp4", tmp_path / "c.mp4"
     ref.write_bytes(b"R")
     cand.write_bytes(b"C")
-    out = await sim_mod.judge_similarity(cfg, ref, cand, transport=httpx.MockTransport(handler))
-    assert seen["body"]["stream"] is True and out["similarity"] == pytest.approx(0.8)
+    out = await sim_mod.judge_video_reward(cfg, ref, cand, transport=httpx.MockTransport(handler))
+    assert seen["body"]["stream"] is True and out["video_reward"] == pytest.approx(0.8)
 
 
 @pytest.mark.cpu
@@ -513,7 +513,7 @@ STRUCTURED_REPLY = (
 STRUCTURED_SIM = 0.25 * 0.75 + 0.25 * 0.5 + 0.3 * 0.25 + 0.2 * 1.0
 
 
-def _structured_cfg(tmp_path, **overrides) -> SimilarityRewardConfig:
+def _structured_cfg(tmp_path, **overrides) -> VideoRewardConfig:
     return _sim_cfg(
         tmp_path, judge={"base_url": "http://vlm:8000/v1", "model": "judge-vlm", "rubric": "structured"}, **overrides
     )
@@ -549,13 +549,13 @@ def test_parse_structured_judgement_rejects_missing_sub_score():
 
 
 @pytest.mark.cpu
-def test_structured_similarity_weights_and_motion_na():
+def test_structured_video_reward_weights_and_motion_na():
     weights = sim_mod.DEFAULT_STRUCTURED_WEIGHTS
     scores = {"faithfulness": 0.75, "layout": 0.5, "motion": 0.25, "camera": 1.0}
-    assert sim_mod.structured_similarity(scores, False, weights) == pytest.approx(STRUCTURED_SIM)
+    assert sim_mod.structured_video_reward(scores, False, weights) == pytest.approx(STRUCTURED_SIM)
     without_motion = (0.25 * 0.75 + 0.25 * 0.5 + 0.2 * 1.0) / 0.7
-    assert sim_mod.structured_similarity(scores, True, weights) == pytest.approx(without_motion)
-    assert sim_mod.structured_similarity(dict.fromkeys(scores, 1.0), True, weights) == pytest.approx(1.0)
+    assert sim_mod.structured_video_reward(scores, True, weights) == pytest.approx(without_motion)
+    assert sim_mod.structured_video_reward(dict.fromkeys(scores, 1.0), True, weights) == pytest.approx(1.0)
 
 
 @pytest.mark.cpu
@@ -572,7 +572,7 @@ def test_faithfulness_gate(tmp_path):
 @pytest.mark.cpu
 def test_judge_weights_are_checked():
     with pytest.raises(ValueError, match="weights"):
-        SimilarityRewardConfig.model_validate(
+        VideoRewardConfig.model_validate(
             {
                 "ref2va": {"base_url": "http://h3:1", "shared_dir": "/tmp/x"},
                 "judge": {"base_url": "http://j/v1", "model": "m", "weights": {"faithfulness": 1.0}},
@@ -607,7 +607,7 @@ async def test_structured_judge_gets_description_and_both_h3_videos(tmp_path):
     assert prompt.startswith("You are a strict, professional evaluator")
     assert prompt.endswith("Scene description:\nfour friends at a table") and "{{" not in prompt
     assert out["scores"] == {"faithfulness": 0.75, "layout": 0.5, "motion": 0.25, "camera": 1.0}
-    assert out["motion_na"] is False and out["similarity"] == pytest.approx(STRUCTURED_SIM)
+    assert out["motion_na"] is False and out["video_reward"] == pytest.approx(STRUCTURED_SIM)
     kept = json.loads((Path(out["work_dir"]) / "judge.json").read_text())
     assert kept["scores"]["camera"] == 1.0 and kept["gt_video"] == str(gt)
 
@@ -635,12 +635,12 @@ async def test_overall_judge_prompt_is_unchanged(tmp_path):
 async def test_task_structured_judge_and_gate(tmp_path, monkeypatch):
     async def judged(faithfulness):
         scores = {"faithfulness": faithfulness, "layout": 0.5, "motion": 0.5, "camera": 0.5}
-        return {"similarity": 0.6, "scores": scores, "motion_na": False, "judge_reply": "{}"}
+        return {"video_reward": 0.6, "scores": scores, "motion_na": False, "judge_reply": "{}"}
 
     (tmp_path / "a").mkdir()
     task, _, calls, _ = _task(tmp_path / "a", monkeypatch, accepted=True, scorer=lambda: judged(0.75))
     result = await task.run()
-    assert result.reward == pytest.approx(1.3) and "gated" not in result.extra_info["similarity"]
+    assert result.reward == pytest.approx(1.3) and "gated" not in result.extra_info["video_reward"]
     assert task.descriptions == ["a ball rolls"]  # the scene description goes to the judge
     assert "Scene Description:\na ball rolls" in calls[0][2]  # and the Ref2VA prompt is still the GT recipe
 
@@ -648,4 +648,4 @@ async def test_task_structured_judge_and_gate(tmp_path, monkeypatch):
     task, *_ = _task(tmp_path / "b", monkeypatch, accepted=True, scorer=lambda: judged(0.0))
     result = await task.run()
     assert result.reward == 0.0 and result.accuracy == 1.0  # accepted by the harness, gated by the judge
-    assert result.extra_info["similarity"]["gated"] is True
+    assert result.extra_info["video_reward"]["gated"] is True

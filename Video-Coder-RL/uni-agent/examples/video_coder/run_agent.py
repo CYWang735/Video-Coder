@@ -90,7 +90,7 @@ def main() -> None:
             check = check_file(script)
             if error is None and exit_status == "Submitted" and check["ok"] and harness["blender_available"]:
                 # Kept (outside the agent's workspace) so the task can copy the accepted render out of
-                # the sandbox, e.g. for the similarity reward.
+                # the sandbox, e.g. for the video reward.
                 FINAL_DIR.mkdir(parents=True, exist_ok=True)
                 execution = g.final_execution(script, FINAL_DIR, harness)
         except Exception as e:  # harness failure after the agent finished: not accepted, but report it

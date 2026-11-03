@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--prompt-field", default="prompt")
     parser.add_argument("--gt-field", default="gt_video",
-                        help="record field with the GT video path (for the similarity reward); copied to metadata")
+                        help="record field with the GT video path (for the video reward); copied to metadata")
     parser.add_argument("--gen-prompt-field", default="gen_prompt",
                         help="record field with the Ref2VA prompt the GT was made with; copied to metadata if present")
     parser.add_argument("--require-gt", action="store_true", help="fail if a record has no existing GT video")

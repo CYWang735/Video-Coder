@@ -1,11 +1,11 @@
-"""Video-Coder task: write a bpy script for a scene description; reward = vcsft acceptance (+ similarity).
+"""Video-Coder task: write a bpy script for a scene description; reward = vcsft acceptance (+ video reward).
 
 The ``video_coder`` agent runs the harness and re-renders the submitted script from scratch inside the
-sandbox. Without ``similarity`` the reward is the acceptance: 1.0 if accepted (submitted, static check ok,
-final script renders a valid video), else 0.0. With ``similarity`` (see :mod:`.similarity`) an accepted
+sandbox. Without ``video_reward`` the reward is the acceptance: 1.0 if accepted (submitted, static check ok,
+final script renders a valid video), else 0.0. With ``video_reward`` (see :mod:`.video_reward`) an accepted
 render is also turned into a video by MiniMax-H3 Ref2VA and compared with the sample's GT video by a VLM:
-reward = exe_weight * accept_weight * accepted + similarity_weight * similarity, where exe_weight =
-exp(-global_step / T) anneals the execution term over training, T being similarity.exe_anneal_steps (by default the
+reward = exe_weight * accept_weight * accepted + video_reward_weight * video_reward, where exe_weight =
+exp(-global_step / T) anneals the execution term over training, T being video_reward.exe_anneal_steps (by default the
 total training steps; the framework sets both on the task config for training rollouts, not for validation).
 """
 
@@ -15,12 +15,12 @@ import logging
 import random
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 
 from ..base import Task, TaskConfig, TaskResult
 from ..registry import register_task
-from .similarity import (
-    SimilarityRewardConfig,
+from .video_reward import (
+    VideoRewardConfig,
     build_ref2va_prompt,
     combine_reward,
     exe_weight,
@@ -33,9 +33,10 @@ logger = logging.getLogger(__name__)
 
 class VideoCoderTaskConfig(TaskConfig):
     name: str = "video_coder"
-    similarity: SimilarityRewardConfig | None = Field(
+    video_reward: VideoRewardConfig | None = Field(
         default=None,
-        description="Optional similarity reward against metadata[gt_field] (Ref2VA + VLM judge).",
+        validation_alias=AliasChoices("video_reward", "similarity"),  # similarity: old name (earlier task configs)
+        description="Optional video reward against metadata[gt_field] (Ref2VA + VLM judge).",
     )
     debug_random_reward: bool = Field(
         default=False,
@@ -49,7 +50,7 @@ class VideoCoderTask(Task):
 
     async def run(self) -> TaskResult:
         cfg: VideoCoderTaskConfig = self.config  # type: ignore[assignment]
-        sim = cfg.similarity if cfg.similarity is not None and cfg.similarity.enabled else None
+        sim = cfg.video_reward if cfg.video_reward is not None and cfg.video_reward.enabled else None
         gt_video = None
         if sim is not None:  # fail before the (long) rollout if the sample cannot be scored
             gt_video = cfg.metadata.get(sim.gt_field)
@@ -84,30 +85,30 @@ class VideoCoderTask(Task):
                     tag=str(cfg.metadata.get("id", "")),
                     request_overrides=cfg.metadata.get(sim.ref2va.request_field) or None,
                 )
-                similarity = scored["similarity"]
-                out = {**out, "similarity": scored}
+                video_reward = scored["video_reward"]
+                out = {**out, "video_reward": scored}
                 if "scores" in scored:  # rubric structured
                     faithfulness = scored["scores"]["faithfulness"]
                     logger.info(
-                        "video_coder: judge %s motion_na=%s similarity=%.3f",
+                        "video_coder: judge %s motion_na=%s video_reward=%.3f",
                         scored["scores"],
                         scored["motion_na"],
-                        similarity,
+                        video_reward,
                     )
             except Exception as e:
                 if sim.on_error == "raise":
                     raise
-                logger.exception("video_coder: similarity scoring failed; counting it as 0")
-                similarity = 0.0
-                out = {**out, "similarity": {"similarity": 0.0, "error": f"{type(e).__name__}: {e}"[:500]}}
+                logger.exception("video_coder: video reward scoring failed; counting it as 0")
+                video_reward = 0.0
+                out = {**out, "video_reward": {"video_reward": 0.0, "error": f"{type(e).__name__}: {e}"[:500]}}
             step, total = cfg.global_steps, cfg.total_training_steps
             reward = combine_reward(
-                sim, accepted, similarity, faithfulness=faithfulness, global_step=step, total_steps=total
+                sim, accepted, video_reward, faithfulness=faithfulness, global_step=step, total_steps=total
             )
             out = {**out, "exe_weight": exe_weight(sim, step, total)}
             if gated_out(sim, faithfulness):  # accepted, but the judge found the video unrelated to the description
                 logger.info("video_coder: faithfulness %s <= gate %s: reward 0", faithfulness, sim.faithfulness_gate)
-                out = {**out, "similarity": {**out["similarity"], "gated": True}}
+                out = {**out, "video_reward": {**out["video_reward"], "gated": True}}
 
         if cfg.debug_random_reward:
             out = {**out, "true_reward": reward}

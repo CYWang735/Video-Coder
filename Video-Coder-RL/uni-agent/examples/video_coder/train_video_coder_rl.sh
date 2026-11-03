@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # RL for the video_coder (Blender) task: vcsft harness in bpy-agent.sif, reward = 1.0 * accepted
-# + 0.5 * similarity (MiniMax-H3 Ref2VA + VLM judge against the sample's GT video).
+# + 0.5 * video reward (MiniMax-H3 Ref2VA + VLM judge against the sample's GT video).
 #
 # Run from the repo root on the GPU node, with a Ray head already running there:
 #   cd ~/wangcy/uni-agent-v2 && source proxy.sh
@@ -12,7 +12,7 @@
 #     which Qwen3.5 needs for long rollouts)
 #   - data: python -m uni_agent.tasks.video_coder.preprocess --tasks train.jsonl --out <train.parquet> --require-gt
 #   - fill in the H3 / VLM endpoints, the VLM model name and the Ref2VA request (= the GT recipe) in
-#     $TASK_CONFIG (default: task_config_video_coder_similarity_apptainer.yaml)
+#     $TASK_CONFIG (default: task_config_video_coder_video_reward_apptainer.yaml)
 #   - bash examples/video_coder/install_harness.sh  (once: imageio-ffmpeg in the tool dir)
 # Set TASK_CONFIG=examples/quickstart/training/task_config_video_coder_apptainer.yaml to train on the
 # acceptance reward only (no H3 / VLM needed).
@@ -23,7 +23,7 @@ set -euo pipefail
 export MODEL_PATH=${MODEL_PATH:?set MODEL_PATH to the policy checkpoint (HF format)}
 export TRAIN_FILE=${TRAIN_FILE:-$HOME/data/uni_agent/video_coder_train.parquet}
 export TEST_FILE=${TEST_FILE:-$HOME/data/uni_agent/video_coder_val.parquet}
-export TASK_CONFIG=${TASK_CONFIG:-examples/quickstart/training/task_config_video_coder_similarity_apptainer.yaml}
+export TASK_CONFIG=${TASK_CONFIG:-examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml}
 export RUNTIME_ENV=${RUNTIME_ENV:-runtime_env.yaml}
 
 export PROJECT_NAME=${PROJECT_NAME:-Uni-Agent-VideoCoder}
@@ -91,7 +91,7 @@ task = tasks.get("video_coder") or sys.exit(f"{cfg_path} has no video_coder task
 image = task["sandbox"].get("image")
 if image and image.endswith(".sif") and not os.path.isfile(image):
     sys.exit(f"sandbox image not found: {image}")
-sim = task.get("similarity")
+sim = task.get("video_reward") or task.get("similarity")  # similarity: old name
 if sim and sim.get("enabled", True):
     import pandas as pd
     rows = pd.read_parquet(train_file)["extra_info"]
@@ -123,7 +123,7 @@ if sim and sim.get("enabled", True):
         print(f"preflight: note: {judge['api_key_env']} is not set in this shell; it must be set where Ray was started")
     print(f"preflight: {len(rows)} rows with GT videos; {len(h3_urls)} H3 server(s) and the VLM endpoint reachable")
 else:
-    print("preflight: similarity reward off (acceptance reward only)")
+    print("preflight: video reward off (acceptance reward only)")
 EOF
 
 echo "starting: model=$MODEL_PATH train=$TRAIN_FILE task_config=$TASK_CONFIG logs=$AGENT_LOG_DIR ckpts=$CKPTS_DIR"

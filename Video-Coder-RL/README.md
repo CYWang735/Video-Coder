@@ -59,11 +59,11 @@ $$R = e^{-t/T} \cdot 1.0 \cdot \mathbb{1}[\text{accepted}] + 0.5 \cdot R_{\text{
 - $R = 0$ when the scene is not accepted.
 - $T$ is the total number of training steps.
 
-To use another generator or judge, revise the `similarity` section of the task config and [`uni_agent/tasks/video_coder/similarity.py`](uni-agent/uni_agent/tasks/video_coder/similarity.py).
+To use another generator or judge, revise the `video_reward` section of the task config and [`uni_agent/tasks/video_coder/video_reward.py`](uni-agent/uni_agent/tasks/video_coder/video_reward.py).
 
-Then edit the task config, [`examples/quickstart/training/task_config_video_coder_similarity_apptainer.yaml`](uni-agent/examples/quickstart/training/task_config_video_coder_similarity_apptainer.yaml):
-- Set the launched H3 servers in `similarity.ref2va.base_urls`.
-- Set `similarity.ref2va.shared_dir` to a directory that both the trainer and the H3 servers see at the same path.
+Then edit the task config, [`examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml`](uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml):
+- Set the launched H3 servers in `video_reward.ref2va.base_urls`.
+- Set `video_reward.ref2va.shared_dir` to a directory that both the trainer and the H3 servers see at the same path.
 - Set the sandbox `image` and `binds`.
 - Enter your `DASHSCOPE_API_KEY` as an environment variable, not in the file:
 

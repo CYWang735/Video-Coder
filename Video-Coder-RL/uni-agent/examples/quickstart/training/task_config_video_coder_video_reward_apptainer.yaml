@@ -1,4 +1,4 @@
-# video_coder + similarity reward: reward = 1.0 * accepted + 0.5 * similarity (similarity only for accepted
+# video_coder + video reward: reward = 1.0 * accepted + 0.5 * video_reward (the video reward only for accepted
 # rollouts). An accepted render goes to MiniMax-H3 Ref2VA as a reference video, and a VLM scores the result
 # against the sample's GT video (metadata.gt_video; see uni_agent/tasks/video_coder/preprocess.py --gt-field).
 # Both services are deployed separately; set their URLs below. ref2va.request must equal the recipe the GT
@@ -11,12 +11,12 @@
 # the uni_container.yaml overlay instead.
 # Prepare once: bash examples/video_coder/install_harness.sh  (adds imageio-ffmpeg to the tool dir).
 - name: video_coder
-  similarity:
+  video_reward:
     gt_field: gt_video
     accept_weight: 1.0
-    similarity_weight: 0.5
+    video_reward_weight: 0.5
     exe_anneal_steps: auto     # T: accept_weight * exp(-global_step / T); auto = total training steps, null = off
-    on_error: raise            # raise: drop the rollout when H3/VLM fail; zero: count similarity as 0
+    on_error: raise            # raise: drop the rollout when H3/VLM fail; zero: count the video reward as 0
     keep_files: false
     ref2va:
       base_url: http://127.0.0.1:30011          # MiniMax-H3 SGLang server (Ref2VA variant)

@@ -1,4 +1,4 @@
-"""Similarity reward for video_coder: white-model render -> MiniMax-H3 Ref2VA -> VLM judge vs. a GT video.
+"""Video reward for video_coder: white-model render -> MiniMax-H3 Ref2VA -> VLM judge vs. a GT video.
 
 The GT video of a sample was made by feeding a reference white-model video to MiniMax-H3 (Ref2VA). For an
 accepted rollout the same pipeline is applied to the policy's render, and a VLM compares the two videos:
@@ -14,7 +14,7 @@ to it at the same path.
 
 ``judge.rubric: structured`` (the default) gives the judge the scene description too (STRUCTURED_JUDGE_PROMPT): it
 lists the description's hard constraints, then scores faithfulness (against the description) and layout, motion
-and camera (against the GT video) on a 5-level scale. The similarity is their weighted mean, computed here, and an
+and camera (against the GT video) on a 5-level scale. The video reward is their weighted mean, computed here, and an
 accepted rollout whose faithfulness is at most ``faithfulness_gate`` gets reward 0. ``rubric: overall`` is the
 original single-score prompt.
 """
@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, PositiveInt, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ reason first:
 "motion": <0-1>, "camera": <0-1>, "score": <0-1>}"""
 
 # judge.rubric structured: Video 1 = GT video, Video 2 = the H3 video of the policy's render, then this text with
-# {{scene_description}} filled in. The judge gives sub-scores only; structured_similarity() combines them.
+# {{scene_description}} filled in. The judge gives sub-scores only; structured_video_reward() combines them.
 STRUCTURED_JUDGE_PROMPT = """\
 You are a strict, professional evaluator of AI-generated videos that reconstruct an animated scene.
 
@@ -267,7 +267,7 @@ class JudgeConfig(BaseModel):
     max_score: float = Field(default=1.0, description="Top of the judge's score scale (the default prompt uses 0-1).")
     weights: dict[str, float] = Field(
         default_factory=lambda: dict(DEFAULT_STRUCTURED_WEIGHTS),
-        description="rubric structured: weights of faithfulness / layout / motion / camera in the similarity "
+        description="rubric structured: weights of faithfulness / layout / motion / camera in the video reward "
         "(renormalized without motion when the judge marks it N/A).",
     )
     temperature: float = 0.0
@@ -306,18 +306,22 @@ class JudgeConfig(BaseModel):
         return self
 
 
-class SimilarityRewardConfig(BaseModel):
-    """reward = exe_weight * accept_weight * accepted + similarity_weight * similarity (similarity only for accepted),
-    with exe_weight = exp(-global_step / T) (T = exe_anneal_steps, by default the total training steps), else 1."""
+class VideoRewardConfig(BaseModel):
+    """reward = exe_weight * accept_weight * accepted + video_reward_weight * video_reward (the video reward only for
+    accepted), with exe_weight = exp(-global_step / T) (T = exe_anneal_steps, by default the total training steps),
+    else 1."""
 
     enabled: bool = True
     gt_field: str = Field(default="gt_video", description="metadata field with the GT video path.")
     accept_weight: float = 1.0
-    similarity_weight: float = 0.5
+    video_reward_weight: float = Field(
+        default=0.5,
+        validation_alias=AliasChoices("video_reward_weight", "similarity_weight"),  # similarity_weight: old name
+    )
     exe_anneal_steps: PositiveInt | Literal["auto"] | None = Field(
         default="auto",
         description="T of the execution-reward annealing: the acceptance term is scaled by exp(-global_step / T), "
-        "so training shifts from getting the script to run towards video similarity. auto: the trainer's total "
+        "so training shifts from getting the script to run towards the video reward. auto: the trainer's total "
         "number of training steps (len(train dataloader) * epochs); an int sets T directly; None turns it off. "
         "Rollouts without a step (validation, standalone runs) are not annealed.",
     )
@@ -328,7 +332,7 @@ class SimilarityRewardConfig(BaseModel):
     )
     on_error: Literal["raise", "zero"] = Field(
         default="raise",
-        description="raise: fail the rollout (dropped from training); zero: count the similarity as 0.",
+        description="raise: fail the rollout (dropped from training); zero: count the video reward as 0.",
     )
     keep_files: bool = Field(default=False, description="Keep white.mp4 / generated.mp4 / judge.json under shared_dir.")
     ref2va: Ref2VAConfig
@@ -337,7 +341,7 @@ class SimilarityRewardConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-def exe_weight(cfg: SimilarityRewardConfig, global_step: int | None, total_steps: int | None = None) -> float:
+def exe_weight(cfg: VideoRewardConfig, global_step: int | None, total_steps: int | None = None) -> float:
     """Annealing factor of the acceptance term: exp(-global_step / T), 1 when annealing is off or there is no step.
 
     T is exe_anneal_steps, or with exe_anneal_steps auto the trainer's total_steps."""
@@ -348,23 +352,23 @@ def exe_weight(cfg: SimilarityRewardConfig, global_step: int | None, total_steps
 
 
 def combine_reward(
-    cfg: SimilarityRewardConfig,
+    cfg: VideoRewardConfig,
     accepted: bool,
-    similarity: float | None,
+    video_reward: float | None,
     faithfulness: float | None = None,
     global_step: int | None = None,
     total_steps: int | None = None,
 ) -> float:
-    """Unaccepted rollouts get 0; accepted ones the (annealed) accept_weight plus the weighted similarity. With a
+    """Unaccepted rollouts get 0; accepted ones the (annealed) accept_weight plus the weighted video reward. With a
     faithfulness (rubric structured) at or below faithfulness_gate the video does not depict the description: 0 as
     well."""
     if not accepted or gated_out(cfg, faithfulness):
         return 0.0
     execution = exe_weight(cfg, global_step, total_steps) * cfg.accept_weight
-    return execution + cfg.similarity_weight * float(similarity or 0.0)
+    return execution + cfg.video_reward_weight * float(video_reward or 0.0)
 
 
-def gated_out(cfg: SimilarityRewardConfig, faithfulness: float | None) -> bool:
+def gated_out(cfg: VideoRewardConfig, faithfulness: float | None) -> bool:
     """rubric structured: the judge found the video unrelated to the description (faithfulness <= gate)."""
     return faithfulness is not None and cfg.faithfulness_gate is not None and faithfulness <= cfg.faithfulness_gate
 
@@ -407,7 +411,7 @@ def parse_structured_judgement(text: str) -> dict[str, Any]:
     return {"scores": scores, "motion_na": bool(na)}
 
 
-def structured_similarity(scores: dict[str, float], motion_na: bool, weights: dict[str, float]) -> float:
+def structured_video_reward(scores: dict[str, float], motion_na: bool, weights: dict[str, float]) -> float:
     """Weighted mean of the sub-scores; without motion (weights renormalized) when the judge marks it N/A."""
     keys = [k for k in STRUCTURED_SCORE_KEYS if not (motion_na and k == "motion")]
     return sum(weights[k] * scores[k] for k in keys) / sum(weights[k] for k in keys)
@@ -532,7 +536,7 @@ def _video_part(path: Path, transport_mode: str, max_inline_mb: float = float("i
     return {"type": "video_url", "video_url": {"url": url}}
 
 
-async def judge_similarity(
+async def judge_video_reward(
     cfg: JudgeConfig,
     reference_video: Path,
     candidate_video: Path,
@@ -540,7 +544,7 @@ async def judge_similarity(
     *,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> dict[str, Any]:
-    """Ask the VLM to compare the two videos; return the similarity in [0, 1] and the raw reply (rubric structured:
+    """Ask the VLM to compare the two videos; return the video reward in [0, 1] and the raw reply (rubric structured:
     also the sub-scores and motion_na; `description` fills the prompt's {{scene_description}})."""
     if cfg.rubric == "structured":
         prompt = (cfg.prompt or STRUCTURED_JUDGE_PROMPT).replace("{{scene_description}}", description.strip())
@@ -556,9 +560,9 @@ async def judge_similarity(
     reply = await _ask_judge(cfg, content, transport)
     if cfg.rubric == "structured":
         parsed = parse_structured_judgement(reply)
-        similarity = structured_similarity(parsed["scores"], parsed["motion_na"], cfg.weights)
-        return {"similarity": similarity, **parsed, "judge_reply": reply[:4000]}
-    return {"similarity": parse_score(reply, cfg.max_score), "judge_reply": reply[:1000]}
+        video_reward = structured_video_reward(parsed["scores"], parsed["motion_na"], cfg.weights)
+        return {"video_reward": video_reward, **parsed, "judge_reply": reply[:4000]}
+    return {"video_reward": parse_score(reply, cfg.max_score), "judge_reply": reply[:1000]}
 
 
 async def _ask_judge(
@@ -603,7 +607,7 @@ async def _streamed_reply(client: httpx.AsyncClient, url: str, body: dict, heade
 
 
 async def score_rollout(
-    cfg: SimilarityRewardConfig,
+    cfg: VideoRewardConfig,
     render: bytes,
     gt_video: str,
     prompt: str,
@@ -614,7 +618,7 @@ async def score_rollout(
     sleep=None,
     request_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Run the full pipeline for one accepted render; returns similarity in [0, 1] plus diagnostics.
+    """Run the full pipeline for one accepted render; returns the video reward in [0, 1] plus diagnostics.
     `prompt` is the Ref2VA prompt; `description` (the scene description) goes to a structured judge."""
     work = Path(cfg.ref2va.shared_dir) / f"{tag or 'rollout'}-{uuid.uuid4().hex[:8]}"
     work.mkdir(parents=True, exist_ok=True)
@@ -624,7 +628,7 @@ async def score_rollout(
         gen = await generate_ref2va(
             cfg.ref2va, white, prompt, generated, transport=transport, sleep=sleep, request_overrides=request_overrides
         )
-        judged = await judge_similarity(cfg.judge, Path(gt_video), generated, description, transport=transport)
+        judged = await judge_video_reward(cfg.judge, Path(gt_video), generated, description, transport=transport)
         if cfg.keep_files:
             (work / "judge.json").write_text(json.dumps({"gt_video": gt_video, **judged}, ensure_ascii=False, indent=1))
         return {

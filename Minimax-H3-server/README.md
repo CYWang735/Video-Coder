@@ -151,7 +151,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 PORT=30021 bash run_batch.sh m.jsonl outputs/s1 --s
 ## 作为 RL video reward 的服务
 
 Video-Coder-RL 的 video reward 通过 HTTP 调用这里部署的 Ref2VA 服务(见 `../Video-Coder-RL/README.md`)。
-每台 4 卡机器起一个常驻服务,训练端把所有服务的地址填进 task config 的 `similarity.ref2va.base_urls`:
+每台 4 卡机器起一个常驻服务,训练端把所有服务的地址填进 task config 的 `video_reward.ref2va.base_urls`:
 
 ```bash
 bash setup_env.sh                          # 每台新机器一次
@@ -159,7 +159,7 @@ HOST=0.0.0.0 PORT=30011 NUM_GPUS=4 bash serve.sh
 curl -s -o /dev/null -w '%{http_code}\n' http://<host>:30011/health   # 200 = 模型已加载完(约 3-7 分钟)
 ```
 
-- 训练端在 `similarity.ref2va.shared_dir` 里写白模视频,并以 `file://` 路径交给服务,所以这个目录在服务机器上必须是同一个路径(共享存储)
+- 训练端在 `video_reward.ref2va.shared_dir` 里写白模视频,并以 `file://` 路径交给服务,所以这个目录在服务机器上必须是同一个路径(共享存储)
 - 训练时我们用了 4 个服务;服务越多,每步等 H3 出视频的时间越短
 
 ## 4. 常用设置
