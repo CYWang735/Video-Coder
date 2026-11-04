@@ -23,16 +23,6 @@ Video-Coder is trained with supervised fine-tuning followed by **harness-native 
 - **Physics-focused evaluation:** assess generation on PhyGenBench and VBench-2.0.
 
 
-## 📊 Datasets
-
-The training data is on [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data):
-
-| File | Stage | Content |
-|---|---|---|
-| `sft_data.json` | SFT | Multi-turn Video-Coder Harness trajectories for the cold start |
-| `rl_data.json` | RL | 1,684 tasks: `id`, `prompt` (scene description) and `gt_video` (path of the ground-truth video, relative to the JSON file) |
-| `gt_video/gt_video.zip` | RL | The ground-truth videos, each with a `.json` holding the MiniMax-H3 request it was generated with |
-
 ## 🏆 Performance
 
 ### PhyGenBench
