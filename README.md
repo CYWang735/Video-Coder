@@ -55,47 +55,82 @@ Video-Coder constructs draft videos that guide the generated videos through expl
 ### Setup
 
 ```bash
-git clone https://github.com/tulerfeng/OneThinker
-cd OneThinker
+# 1. Clone the repository
+git clone https://github.com/CYWang735/Video-Coder.git
+cd Video-Coder
 
 # build SFT environment
-conda create -n ms-swift python=3.12 
-conda activate ms-swift
-cd ms-swift
-pip install ms-swift -U
-
+conda create -n video-coder-sft python=3.12 -y
+conda activate video-coder-sft
+cd Video-Coder-SFT/ms-swift
+pip install -e .
+pip install flash-linear-attention      # fast Qwen3.5 linear attention (optional, much faster)
+cd ../..
 
 # build RL environment
-conda create -n uni-agent python=3.12 
-conda activate uni-agent
-cd uni-agent
-
-
+conda create -n video-coder-rl python=3.12 -y
+conda activate video-coder-rl
+cd Video-Coder-RL/uni-agent
+pip install vllm==0.30.0 torch==2.13.0 transformers==5.17.0 "ray[default]==2.58.0" \
+    tensordict==0.14.2 accelerate==1.15.0 peft==0.21.1 qwen-vl-utils==0.0.14
+grep -vE '^(transformers|tensordict|TransferQueue)' verl/requirements.txt > /tmp/verl-req.txt
+pip install -r /tmp/verl-req.txt
+pip install --no-deps -e ./verl
+pip install --no-deps transferqueue==0.1.11 fla-core==0.5.2 flash-linear-attention==0.5.2
+pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
 ```
 
-For more details for the SFT and RL environment installation, please refer to [ms-swift](https://github.com/modelscope/ms-swift),  [uni-agent](https://github.com/verl-project/uni-agent)
+The RL stage also needs the Blender sandbox of the Video-Coder Harness: an Apptainer image with Blender 4.5 / `bpy` and a [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) (≥ 2.4) tool directory, see the [RL guide](./Video-Coder-RL/README.md).
 
-Download the training datasets [[🤗 Video-Coder-train-data]()] and unzip all the data. Then update the image paths in the JSON file to match your local directory.
+Download the training data [[🤗 Video-Coder-train-data]()] and unzip all files. `sft_data.json` is for SFT: put it under `Video-Coder-SFT/ms-swift/data/`. `rl_train.json` is for RL: each task has a scene description and a ground-truth video, whose path is relative to the JSON file.
 
-The `rl_train.json` file is for RL training while `sft_data.json` is for SFT training. 
+### SFT Training
 
+Our SFT simply follows [ms-swift](https://github.com/modelscope/ms-swift), using `sft_data.json` (multi-turn Video-Coder Harness trajectories).
 
-### Stage 1: Supervised Fine-Tuning
+```bash
+cd Video-Coder-SFT/ms-swift
+bash examples/train/Video-Coder/sft_qwen3_5_full.sh
+```
 
-The SFT implementation is provided under [Video-Coder-SFT/ms-swift](./Video-Coder-SFT/ms-swift/). Use the SFT checkpoint to initialize the RL stage.
+The script fully fine-tunes [Qwen/Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.5-9B) with a 128k context (sequence parallel 4) on one node with 4 × H100 GPUs. The SFT checkpoint initializes the RL stage.
 
-### Stage 2: Agentic Reinforcement Learning
+### RL Training
 
-Follow the [RL setup and training guide](./Video-Coder-RL/README.md) to prepare the training environment, Blender sandbox, task data, and video reward services.
+First, convert `rl_train.json` into the training parquet.
 
-The main training entry point is:
-
-~~~bash
+```bash
 cd Video-Coder-RL/uni-agent
-bash examples/video_coder/train_video_coder_rl.sh
-~~~
+python -m uni_agent.tasks.video_coder.preprocess --tasks /path/to/rl_train.json \
+    --out $PWD/data/video_coder_train.parquet --require-gt --gt-request-sidecar
+```
 
-Before launching, configure the SFT checkpoint, training and validation data, sandbox paths, and video generator endpoints as described in the RL guide.
+Launch the video generator for the video reward, here we use [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) (Ref2VA) served with SGLang. Each server uses 4 GPUs; more servers make each step faster (we used 4).
+
+```bash
+cd Minimax-H3-server
+bash setup_env.sh && bash download_model.sh     # once
+HOST=0.0.0.0 PORT=30011 bash serve.sh
+```
+
+The draft video of each accepted rollout is turned into a video by MiniMax-H3, and a VLM judge (`qwen3.8-omni-flash` on DashScope) scores it against the ground-truth video. You may also change to other video generators or judges by revising the `video_reward` section of the task config and [`video_reward.py`](./Video-Coder-RL/uni-agent/uni_agent/tasks/video_coder/video_reward.py).
+
+Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls`, a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path, the sandbox `image` and `binds`, and `agent.step_limit: 100` (as in our run). Export your `DASHSCOPE_API_KEY` on every node before starting Ray.
+
+Finally, start the RL training based on the SFT model.
+
+```bash
+cd Video-Coder-RL/uni-agent
+ray start --head            # on the other nodes: ray start --address=<head>:6379
+MODEL_PATH=/path/to/sft_checkpoint CKPTS_DIR=/path/to/ckpts \
+TRAIN_FILE=$PWD/data/video_coder_train.parquet TEST_FILE=$PWD/data/video_coder_train.parquet \
+NNODES=2 NGPUS_PER_NODE=4 GATEWAY_COUNT=4 CONCURRENCY=64 \
+TRAIN_PROMPT_BSZ=8 N_RESP_PER_PROMPT=8 PPO_MINI_BATCH_SIZE=8 NUM_WARMUP_BATCHES=0 \
+TOTAL_EPOCHS=3 MAX_RESPONSE_LENGTH=114688 SAVE_FREQ=5 \
+bash examples/video_coder/train_video_coder_rl.sh
+```
+
+We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server. More details are in the [RL guide](./Video-Coder-RL/README.md).
 
 ## 🔮 Video Generation
 
