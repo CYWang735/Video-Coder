@@ -23,6 +23,16 @@ Video-Coder is trained with supervised fine-tuning followed by **harness-native 
 - **Physics-focused evaluation:** assess generation on PhyGenBench and VBench-2.0.
 
 
+## 📊 Datasets
+
+The training data is on [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data):
+
+| File | Stage | Content |
+|---|---|---|
+| `sft_data.json` | SFT | Multi-turn Video-Coder Harness trajectories for the cold start |
+| `rl_data.json` | RL | 1,684 tasks: `id`, `prompt` (scene description) and `gt_video` (path of the ground-truth video, relative to the JSON file) |
+| `gt_video/gt_video.zip` | RL | The ground-truth videos, each with a `.json` holding the MiniMax-H3 request it was generated with |
+
 ## 🏆 Performance
 
 ### PhyGenBench
@@ -82,7 +92,13 @@ pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
 
 The RL stage also needs the Blender sandbox of the Video-Coder Harness: an Apptainer image with Blender 4.5 / `bpy` and a [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) (≥ 2.4) tool directory, see the [RL guide](./Video-Coder-RL/README.md).
 
-Download the training data [[🤗 Video-Coder-train-data]()] and unzip all files. `sft_data.json` is for SFT: put it under `Video-Coder-SFT/ms-swift/data/`. `rl_train.json` is for RL: each task has a scene description and a ground-truth video, whose path is relative to the JSON file.
+Download the training data from [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data) and unzip the ground-truth videos in place, so that the `gt_video` paths in `rl_data.json` resolve. Then put `sft_data.json` under `Video-Coder-SFT/ms-swift/data/`.
+
+```bash
+huggingface-cli download Video-Coder/Train-Data --repo-type dataset --local-dir data/Train-Data
+cd data/Train-Data/gt_video && unzip -q gt_video.zip && cd -
+mkdir -p Video-Coder-SFT/ms-swift/data && cp data/Train-Data/sft_data.json Video-Coder-SFT/ms-swift/data/
+```
 
 ### SFT Training
 
@@ -97,11 +113,11 @@ The script fully fine-tunes [Qwen/Qwen3.5-9B](https://huggingface.co/Qwen/Qwen3.
 
 ### RL Training
 
-First, convert `rl_train.json` into the training parquet.
+First, convert `rl_data.json` into the training parquet.
 
 ```bash
 cd Video-Coder-RL/uni-agent
-python -m uni_agent.tasks.video_coder.preprocess --tasks /path/to/rl_train.json \
+python -m uni_agent.tasks.video_coder.preprocess --tasks ../../data/Train-Data/rl_data.json \
     --out $PWD/data/video_coder_train.parquet --require-gt --gt-request-sidecar
 ```
 
