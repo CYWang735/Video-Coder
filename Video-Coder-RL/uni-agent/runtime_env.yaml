@@ -29,7 +29,7 @@ env_vars:
   VLLM_CACHE_ROOT: "/tmp/v189bd13-vllm-cache"
   TRITON_CACHE_DIR: "/tmp/v189bd13-triton-cache"
   TORCHINDUCTOR_CACHE_DIR: "/tmp/v189bd13-inductor-cache"
-  # Qwen3.5 GatedDeltaNet runs on flash-linear-attention (see Video-Coder-RL/README.md). Its TileLang
+  # Qwen3.5 GatedDeltaNet runs on flash-linear-attention (see the repository README, Training / Setup). Its TileLang
   # backend (if tilelang is installed) JIT-compiles
   # a kernel for every new sequence length (~20 s each); the Triton kernels serve any length.
   FLA_TILELANG: "0"

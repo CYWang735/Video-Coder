@@ -80,7 +80,7 @@ pip install --no-deps transferqueue==0.1.11 fla-core==0.5.2 flash-linear-attenti
 pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
 ```
 
-The RL stage also needs the Blender sandbox of the Video-Coder Harness: an Apptainer image with Blender 4.5 / `bpy` and a [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) (≥ 2.4) tool directory, see the [RL guide](./Video-Coder-RL/README.md).
+The RL stage also needs the Blender sandbox of the Video-Coder Harness: an Apptainer image with Blender 4.5 / `bpy` and a [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) (≥ 2.4) tool directory.
 
 Download the training data from [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data) and unzip the ground-truth videos in place, so that the `gt_video` paths in `rl_data.json` resolve. Then put `sft_data.json` under `Video-Coder-SFT/ms-swift/data/`.
 
@@ -136,7 +136,7 @@ TOTAL_EPOCHS=3 MAX_RESPONSE_LENGTH=114688 SAVE_FREQ=5 \
 bash examples/video_coder/train_video_coder_rl.sh
 ```
 
-We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server. More details are in the [RL guide](./Video-Coder-RL/README.md).
+We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server.
 
 ## 🔮 Video Generation
 

@@ -8,7 +8,7 @@
 #   MODEL_PATH=/path/to/policy bash examples/video_coder/train_video_coder_rl.sh
 #
 # Before the first run:
-#   - env: build it as in Video-Coder-RL/README.md and start Ray from it (it needs flash-linear-attention,
+#   - env: build it as in the repository README (Training / Setup) and start Ray from it (it needs flash-linear-attention,
 #     which Qwen3.5 needs for long rollouts)
 #   - data: python -m uni_agent.tasks.video_coder.preprocess --tasks train.jsonl --out <train.parquet> --require-gt
 #   - fill in the H3 / VLM endpoints, the VLM model name and the Ref2VA request (= the GT recipe) in

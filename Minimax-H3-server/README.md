@@ -150,7 +150,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 PORT=30021 bash run_batch.sh m.jsonl outputs/s1 --s
 
 ## 作为 RL video reward 的服务
 
-Video-Coder-RL 的 video reward 通过 HTTP 调用这里部署的 Ref2VA 服务(见 `../Video-Coder-RL/README.md`)。
+Video-Coder-RL 的 video reward 通过 HTTP 调用这里部署的 Ref2VA 服务(见根目录 README 的 Training 部分)。
 每台 4 卡机器起一个常驻服务,训练端把所有服务的地址填进 task config 的 `video_reward.ref2va.base_urls`:
 
 ```bash
