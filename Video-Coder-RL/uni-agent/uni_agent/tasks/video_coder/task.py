@@ -11,6 +11,7 @@ total training steps; the framework sets both on the task config for training ro
 
 from __future__ import annotations
 
+import json
 import logging
 import random
 from pathlib import Path
@@ -31,6 +32,20 @@ from .video_reward import (
 logger = logging.getLogger(__name__)
 
 
+def _keep_rollout(dest: Path, out: dict, render: bytes | None, script: bytes | None) -> None:
+    """Evaluation output of one rollout; files are written to a temp name and renamed, so readers never see
+    a partial render, and result.json (written last) marks the directory complete."""
+    dest.mkdir(parents=True, exist_ok=True)
+    for name, data in (("render.mp4", render), ("main.py", script)):
+        if data is not None:
+            tmp = dest / f".{name}.tmp"
+            tmp.write_bytes(data)
+            tmp.replace(dest / name)
+    tmp = dest / ".result.json.tmp"
+    tmp.write_text(json.dumps(out, ensure_ascii=False, default=str, indent=1))
+    tmp.replace(dest / "result.json")
+
+
 class VideoCoderTaskConfig(TaskConfig):
     name: str = "video_coder"
     video_reward: VideoRewardConfig | None = Field(
@@ -41,6 +56,11 @@ class VideoCoderTaskConfig(TaskConfig):
     debug_random_reward: bool = Field(
         default=False,
         description="DEBUG ONLY: replace the acceptance reward by a random 0/1, to exercise non-zero gradients.",
+    )
+    keep_render_dir: str | None = Field(
+        default=None,
+        description="Evaluation: write <dir>/<metadata.id>/result.json for every rollout and, when accepted, the "
+        "final render (render.mp4) and script (main.py) next to it.",
     )
 
 
@@ -57,16 +77,30 @@ class VideoCoderTask(Task):
             if not gt_video or not Path(gt_video).is_file():
                 raise FileNotFoundError(f"video_coder: GT video {sim.gt_field}={gt_video!r} not found")
 
+        if cfg.keep_render_dir:  # evaluation: another job may already have produced this video's white model
+            done = Path(cfg.keep_render_dir) / str(cfg.metadata.get("id", "unknown")) / "render.mp4"
+            if done.is_file():
+                logger.info("video_coder: %s exists, skipping", done)
+                return TaskResult(reward=1.0, accuracy=1.0, finished=True, extra_info={"skipped": True})
+
         render = None
         async with self.build_sandbox() as sandbox:
             agent = self.build_agent()
             result = await agent.run(sandbox=sandbox, messages=cfg.prompt)
             out = result.output
             accepted = bool(out.get("accepted"))
-            if sim is not None and accepted:  # copy the render out before the sandbox is torn down
+            if (sim is not None or cfg.keep_render_dir) and accepted:  # copy the render out before teardown
                 if not out.get("final_video"):
                     raise RuntimeError("video_coder: accepted rollout reports no final_video")
                 render = await sandbox.read_file(out["final_video"])
+            if cfg.keep_render_dir:
+                script = None
+                if accepted:
+                    try:
+                        script = await sandbox.read_file(f"{agent.config.workspace.rstrip('/')}/main.py")
+                    except Exception:  # the render is what matters; the script is for inspection
+                        logger.warning("video_coder: could not read the final script", exc_info=True)
+                _keep_rollout(Path(cfg.keep_render_dir) / str(cfg.metadata.get("id", "unknown")), out, render, script)
 
         reward = float(accepted)
         if sim is not None and accepted:

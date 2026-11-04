@@ -140,16 +140,28 @@ We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server.
 
 ## 🔮 Inference
 
-Follow the [MiniMax-H3 deployment and generation guide](./Minimax-H3-server/README.md) to convert draft videos into generated videos.
+Prepare your own prompts in the same format as the training data: a JSON list of `{"id": ..., "prompt": ...}` (`gt_video` is not needed).
 
-~~~bash
+First, generate the **Draft Video** for each prompt with the trained Video-Coder in the Video-Coder Harness, using the RL environment and sandbox from [Training](#-training) (set the sandbox `image` and `binds` in [`task_config.yaml`](./Video-Coder-RL/uni-agent/examples/video_coder/inference/task_config.yaml)).
+
+```bash
+cd Video-Coder-RL/uni-agent
+ray start --head
+MODEL_PATH=/path/to/Video-Coder-9B DATA=/path/to/your_data.json OUT=/path/to/output \
+bash examples/video_coder/inference/run_inference.sh
+```
+
+Each draft video is written to `/path/to/output/drafts/<id>/render.mp4`, together with the Blender script (`main.py`) that rendered it. A prompt whose script fails is retried (up to 3 attempts), and rerunning the command resumes. The script also writes `/path/to/output/h3_manifest.jsonl` for the next step.
+
+Then, launch [MiniMax-H3](https://huggingface.co/MiniMaxAI/MiniMax-H3) and turn the draft videos into the **Final Video**.
+
+```bash
 cd Minimax-H3-server
-bash setup_env.sh
-bash download_model.sh
-bash run_batch.sh examples/demo/manifest.jsonl outputs/demo
-~~~
+bash setup_env.sh && bash download_model.sh     # once
+bash run_batch.sh /path/to/output/h3_manifest.jsonl /path/to/output/final
+```
 
-For custom batches, provide a JSONL manifest containing the draft video path and scene description for each sample. See the generator guide for the manifest schema and multi-server configuration.
+The final videos are written to `/path/to/output/final/<id>.mp4`. See the [MiniMax-H3 guide](./Minimax-H3-server/README.md) for resolution, duration, seeds and multiple servers.
 
 ## Acknowledgements
 

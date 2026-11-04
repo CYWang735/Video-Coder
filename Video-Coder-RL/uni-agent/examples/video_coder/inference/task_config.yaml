@@ -1,0 +1,22 @@
+# Video-Coder inference: the policy writes a Blender script for each prompt in the Video-Coder Harness and the
+# accepted script's render is kept as the draft video: <keep_render_dir>/<id>/render.mp4 (+ main.py, result.json).
+# Same harness, sandbox and agent limits as RL training (visual feedback, step limit 100). Set the sandbox image and
+# binds to your paths; keep_render_dir is filled in by run_inference.sh.
+- name: video_coder
+  keep_render_dir: __DRAFT_DIR__
+  sandbox:
+    provider: apptainer
+    image: /path/to/bpy-agent.sif
+    runtime_timeout: 5400
+    sandbox_kwargs:
+      pull_policy: never
+      binds:
+      - /path/to/mini-swe-agent-tool-dir:/opt/mini-swe-agent:ro
+      - /path/to/Video-Coder-RL/uni-agent/examples/video_coder:/opt/video-coder:ro
+  agent:
+    name: video_coder
+    step_limit: 100
+    run_timeout: 4800
+    tool_python: /opt/mini-swe-agent/bin/python
+    overlays:
+    - /opt/video-coder/configs/uni_container_visual.yaml
