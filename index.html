@@ -1,2 +1,584 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Video-Coder: Reinforcing Agentic Coding for Video Generation"><title>Video-Coder</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:#252b3b;font:16px/1.8 system-ui,-apple-system,sans-serif}a{color:#4864d8;text-decoration:none}nav{border-bottom:1px solid #eef0f6;padding:15px 6%;display:flex;justify-content:space-between}header{text-align:center;max-width:1100px;margin:auto;padding:65px 24px 35px}h1{font-size:clamp(32px,4.5vw,54px);letter-spacing:-1.6px;line-height:1.18;margin:20px 0 26px}h1 span{color:#536ad6}.tag{color:#6073b9;font-size:12px;letter-spacing:3px;font-weight:700}.authors{max-width:920px;margin:20px auto;font-size:17px}.authors span{display:inline-block;margin:0 8px}.institutes{font-size:13px;color:#697286;max-width:860px;margin:auto}.buttons{display:flex;gap:12px;justify-content:center;margin:28px 0;flex-wrap:wrap}.buttons a{background:#29324b;color:white;padding:9px 24px;border-radius:24px}.buttons a:hover{background:#536ad6}main{max-width:1080px;padding:0 24px;margin:auto}img{width:100%;height:auto;display:block;border-radius:8px}figure{margin:24px 0 44px}figcaption{font-size:14px;text-align:center;color:#6b7587;margin:15px auto;max-width:850px}section{padding:38px 0;border-top:1px solid #edf0f6}h2{font-size:29px;letter-spacing:-.7px;margin:0 0 20px}h3{font-size:21px}.abstract{max-width:870px;margin:auto}.abstract p{text-align:justify;color:#4f596d}.cards,.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card,.step{background:#f5f7fc;border-radius:14px;padding:24px}.card strong{font-size:34px;color:#536ad6;display:block}.card p,.step p{font-size:14px;color:#657085}.step b{color:#536ad6}.resources{display:flex;gap:24px;flex-wrap:wrap}footer{text-align:center;background:#f7f8fc;color:#7a8395;font-size:13px;padding:30px;margin-top:35px}@media(max-width:650px){header{padding-top:36px}h1{letter-spacing:-.6px}.cards,.steps{grid-template-columns:1fr}.authors{font-size:15px}}</style></head><body><nav><b>Video-Coder</b><a href="https://github.com/CYWang735/Video-Coder">GitHub ↗</a></nav><header><div class="tag">CODE-DRIVEN VIDEO GENERATION</div><h1><span>Video-Coder</span><br>Reinforcing Agentic Coding<br>for Video Generation</h1><div class="authors"><span>Chaoyang Wang<sup>1</sup></span><span>Sicheng Gao<sup>2</sup></span><span>Junan Hu<sup>3</sup></span><span>Kunyang Li<sup>1</sup></span><span>Dongyang Chen<sup>4</sup></span><span>Yiyang Zhou<sup>5</sup></span><span>Huaxiu Yao<sup>5</sup></span><span>Yong Jae Lee<sup>6</sup></span><span>Radu Timofte<sup>2</sup></span><span>Yuzhang Shang<sup>1,†</sup></span></div><p class="institutes"><sup>1</sup> University of Central Florida &nbsp; <sup>2</sup> University of Würzburg &nbsp; <sup>3</sup> Microsoft Research<br><sup>4</sup> Tsinghua University &nbsp; <sup>5</sup> UNC-Chapel Hill &nbsp; <sup>6</sup> UW–Madison<br>† Corresponding author</p><div class="buttons"><a href="https://github.com/CYWang735/Video-Coder">Code ↗</a><a href="https://huggingface.co/Video-Coder">Models ↗</a><a href="https://huggingface.co/datasets/Video-Coder/Train-Data">Dataset ↗</a></div></header><main><figure><img src="assets/teaser.png" alt="Video-Coder overview: code constructs a dynamic 3D scene to guide video generation"><figcaption>Executable 3D scenes provide explicit structure and motion signals to downstream video generators.</figcaption></figure><section><div class="abstract"><h2>Abstract</h2><p>Recent years have witnessed remarkable progress in video generation in terms of visual quality and temporal consistency. However, generating videos with precise spatial structure, coherent motion dynamics, and controllable scene composition remains challenging. In this paper, we introduce <b>Video-Coder</b>, the first attempt to train a code-driven video generation agent, which autonomously writes and executes code to construct a dynamic 3D scene (Draft Video) that provides structure and motion signals to downstream video generators.</p><p>To support this paradigm, we design a dedicated data pipeline and curate two high-quality datasets, <b>Video-Coder-SFT-10k</b> and <b>Video-Coder-RL-4k</b>, which contain diverse prompts and ground-truth reference videos. We further develop the <b>Video-Coder Harness</b>, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback for agent training and inference. We then train Video-Coder with SFT followed by harness-native agentic reinforcement learning with dual reward feedback, which combines execution-based and video-based rewards.</p><p>Additionally, we design an annealing training strategy that gradually reduces the execution reward over time, allowing the model to rely more on the video reward in the later training stages. Experiments show that Video-Coder achieves significant gains, improving Minimax-H3 by approximately 7 points on PhyGenBench and 24 points on VBench-2.0. We hope this work can serve as an open foundation for coding agents in video generation, and we fully open-source our data, models, and code.</p></div></section><section><h2>From a prompt to a video</h2><div class="steps"><div class="step"><b>01 / Construct</b><h3>Write the scene</h3><p>A coding agent writes Blender Python to specify objects, spatial layout, motion, and camera behavior.</p></div><div class="step"><b>02 / Refine</b><h3>Execute and inspect</h3><p>The Video-Coder Harness renders the scene and provides feedback for iterative code refinement.</p></div><div class="step"><b>03 / Generate</b><h3>Guide the generator</h3><p>The rendered Draft Video supplies structure and motion signals for the final video generation.</p></div></div></section><section id="results"><h2>Quantitative results</h2><p>Physics-focused evaluation on PhyGenBench and VBench-2.0.</p><div class="cards"><div class="card"><strong>0.67</strong>PhyGenBench average<p>Video-Coder-9B + MiniMax-H3.</p></div><div class="card"><strong>78.19%</strong>VBench-2.0 average<p>Video-Coder-9B + MiniMax-H3.</p></div><div class="card"><strong>+23.61</strong>Percentage points<p>VBench-2.0 improvement over MiniMax-H3.</p></div></div><h3>PhyGenBench</h3><figure><img src="assets/table1.png" alt="PhyGenBench results" loading="lazy"></figure><h3>VBench-2.0</h3><figure><img src="assets/table2.png" alt="VBench-2.0 results" loading="lazy"></figure></section><section><h2>Qualitative results</h2><p>Scene programs guide object layout, motion dynamics, and camera behavior across diverse prompts.</p><figure><img src="assets/qualitative.png" alt="Prompts, Draft Videos, and generated videos" loading="lazy"></figure></section><section><h2>Resources</h2><div class="resources"><a href="https://github.com/CYWang735/Video-Coder">Code and training instructions ↗</a><a href="https://huggingface.co/Video-Coder">Models ↗</a><a href="https://huggingface.co/datasets/Video-Coder/Train-Data">Training data ↗</a></div></section></main><footer>Video-Coder · Reinforcing Agentic Coding for Video Generation</footer></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video-Coder</title>
+<meta name="description" content="Video-Coder: a multimodal coding agent that writes and runs Blender code to build a draft 3D scene, which guides downstream video generators. Trained with SFT + harness-native agentic RL.">
+<meta property="og:title" content="Video-Coder: Reinforcing Agentic Coding for Video Generation">
+<meta property="og:description" content="A coding agent writes Blender programs to construct draft videos that steer video generators. +24 on VBench-2.0, +7 on PhyGenBench over MiniMax-H3.">
+<meta property="og:image" content="assets/teaser.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f5f0; --surface:#ffffff; --sunk:#efebe3;
+  --ink:#1c1b18; --ink-2:#4a4740; --muted:#7a766d; --line:#e3ded3;
+  --clay:#a8a399; --clay-2:#d4cfc5;
+  --accent:#d9602a; --accent-ink:#b44c1d; --accent-soft:#fbe7dc;
+  --serif:"Newsreader",Georgia,serif;
+  --sans:"Inter",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --radius:14px; --w:1080px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141412; --surface:#1d1c1a; --sunk:#232220;
+    --ink:#f1eee8; --ink-2:#c9c4ba; --muted:#948f85; --line:#33312d;
+    --clay:#6f6b64; --clay-2:#4a4741;
+    --accent:#f0814b; --accent-ink:#f59a6c; --accent-soft:#3a2418;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141412; --surface:#1d1c1a; --sunk:#232220;
+  --ink:#f1eee8; --ink-2:#c9c4ba; --muted:#948f85; --line:#33312d;
+  --clay:#6f6b64; --clay-2:#4a4741;
+  --accent:#f0814b; --accent-ink:#f59a6c; --accent-soft:#3a2418;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--w);margin:0 auto;padding:0 24px}
+@media (max-width:640px){.wrap{padding:0 16px}}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:16px}
+.brand{font-family:var(--mono);font-size:14px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:8px}
+.brand i{width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block}
+.navlinks{display:flex;gap:22px;font-size:14px;color:var(--muted)}
+.navlinks a{text-decoration:none}.navlinks a:hover{color:var(--ink)}
+@media (max-width:720px){.navlinks{display:none}}
+
+/* hero */
+header{padding:72px 0 40px;text-align:center}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(36px,6vw,68px);line-height:1.05;letter-spacing:-.02em;margin:18px auto 0;max-width:900px;text-wrap:balance}
+h1 .name{display:block;font-weight:600}
+h1 .sub{display:block;color:var(--ink-2);font-size:.62em;margin-top:10px;font-style:italic;font-weight:400}
+.authors{margin:34px auto 0;max-width:860px;font-size:16.5px;line-height:2}
+.authors span{display:inline-block;white-space:nowrap;margin:0 10px}
+.authors sup{color:var(--muted);font-size:11px;margin-left:1px}
+.affils{margin:10px auto 0;max-width:820px;color:var(--muted);font-size:14px;line-height:1.9}
+.affils span{display:inline-block;white-space:nowrap;margin:0 8px}
+.btns{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:30px}
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14.5px;font-weight:500;padding:10px 18px;border-radius:999px;background:var(--ink);color:var(--bg);transition:transform .15s,background .15s}
+.btn:hover{background:var(--accent);color:#fff;transform:translateY(-1px)}
+.btn svg{width:16px;height:16px}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--accent);color:var(--accent-ink);background:transparent}
+
+/* flow ribbon */
+.flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:40px auto 0;font-family:var(--mono);font-size:12.5px}
+.flow .chip{padding:6px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2)}
+.flow .chip.draft{background:var(--sunk);color:var(--ink)}
+.flow .chip.final{background:var(--accent-soft);border-color:transparent;color:var(--accent-ink)}
+.flow .arr{color:var(--clay)}
+
+/* figures */
+.figure{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:clamp(12px,2.5vw,28px);margin:0}
+.figure img{width:100%;height:auto}
+.caption{color:var(--muted);font-size:14px;margin:14px auto 0;max-width:820px;text-align:center}
+.caption b{color:var(--ink-2);font-weight:600}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:48px}
+.stat{background:var(--surface);padding:22px 22px 20px}
+.stat .v{font-family:var(--serif);font-size:40px;line-height:1;font-weight:500;letter-spacing:-.02em}
+.stat .v small{font-size:.5em;color:var(--muted);margin-left:2px}
+.stat .k{font-size:13.5px;color:var(--ink-2);margin-top:10px;line-height:1.45}
+.stat .k em{font-style:normal;color:var(--muted);display:block;font-size:12.5px}
+.stat .up{color:var(--accent-ink)}
+@media (max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* sections */
+section{padding:84px 0 0}
+.sec-head{display:grid;grid-template-columns:200px 1fr;gap:32px;margin-bottom:28px;align-items:baseline}
+.sec-num{font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;border-top:2px solid var(--ink);padding-top:10px}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(28px,3.6vw,40px);line-height:1.12;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.lede{color:var(--ink-2);font-size:17px;margin:14px 0 0;max-width:720px}
+@media (max-width:820px){.sec-head{grid-template-columns:1fr;gap:12px}.sec-num{width:max-content;padding-right:14px}}
+.body{margin-left:232px}
+@media (max-width:820px){.body{margin-left:0}}
+.abstract p{font-size:17px;color:var(--ink-2);margin:0 0 1.1em;max-width:760px}
+.abstract b{color:var(--ink);font-weight:600}
+h3{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:-.005em}
+
+/* loop */
+.loop{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;align-items:stretch}
+@media (max-width:860px){.loop{grid-template-columns:1fr}}
+.steps{display:flex;flex-direction:column;gap:12px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;grid-template-columns:34px 1fr;gap:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.step:hover{border-color:var(--clay-2)}
+.step.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.step .n{font-family:var(--mono);font-size:12px;width:28px;height:28px;border-radius:7px;background:var(--sunk);display:grid;place-items:center;color:var(--ink-2)}
+.step.on .n{background:var(--accent);color:#fff}
+.step p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.55}
+.step code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.term{background:#1a1916;color:#e8e4dc;border-radius:12px;font:12.5px/1.65 var(--mono);overflow:hidden;display:flex;flex-direction:column;min-height:340px}
+.term .bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid #2d2b27;color:#8d887e;font-size:11.5px}
+.term .bar i{width:9px;height:9px;border-radius:50%;background:#3b3934;display:inline-block}
+.term .bar span{margin-left:8px}
+.term pre{margin:0;padding:16px 18px;white-space:pre-wrap;word-break:break-word;flex:1}
+.term .c{color:#8d887e}.term .k{color:#f0a37a}.term .s{color:#b9d89c}.term .ok{color:#8fd19e}.term .err{color:#f28b82}.term .p{color:#f0814b}
+.term .note{padding:8px 18px 12px;color:#6f6a62;font-size:11px;font-family:var(--sans)}
+
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+@media (max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
+.card .tag{font-family:var(--mono);font-size:11.5px;color:var(--accent-ink);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block}
+.subhead{font-family:var(--mono);font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:48px 0 14px}
+
+/* reward annealing */
+.anneal{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:center}
+@media (max-width:860px){.anneal{grid-template-columns:1fr}}
+.formula{font-family:var(--serif);font-size:22px;text-align:center;padding:12px 0 4px}
+.formula i{font-style:italic}
+.formula sub,.formula sup{font-size:.6em;font-style:normal}
+.slider{margin-top:14px}
+.slider label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-family:var(--mono)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:8px 0}
+.weights{display:flex;gap:10px;margin-top:6px}
+.weights div{flex:1;background:var(--sunk);border-radius:10px;padding:10px 12px}
+.weights b{font-family:var(--serif);font-size:24px;font-weight:500;display:block;line-height:1.1}
+.weights span{font-size:12px;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+
+/* results */
+.tabs{display:inline-flex;background:var(--sunk);border-radius:10px;padding:4px;gap:4px;margin-bottom:20px}
+.tabs button{font:500 14px var(--sans);border:0;background:transparent;color:var(--ink-2);padding:8px 16px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.panel[hidden]{display:none}
+.gains{display:grid;gap:14px}
+.gain{display:grid;grid-template-columns:110px 1fr 120px;gap:14px;align-items:center;font-size:14px}
+.gain .lab{color:var(--ink-2)}
+.gain .lab.avg{font-weight:600;color:var(--ink)}
+.track{position:relative;height:30px}
+.track .b{position:absolute;left:0;height:12px;border-radius:0 4px 4px 0;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.track .b.base{top:0;background:var(--clay-2)}
+.track .b.ours{top:15px;background:var(--accent)}
+.gain .num{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--muted);line-height:1.35}
+.gain .num b{color:var(--ink);font-weight:500}
+.gain .num .d{color:var(--accent-ink)}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--muted);margin-bottom:16px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+@media (max-width:560px){.gain{grid-template-columns:76px 1fr 84px;gap:8px;font-size:13px}}
+
+details.full{margin-top:28px;border-top:1px solid var(--line)}
+details.full summary{cursor:pointer;list-style:none;padding:14px 0;font-size:14.5px;font-weight:500;display:flex;align-items:center;gap:8px}
+details.full summary::-webkit-details-marker{display:none}
+details.full summary::before{content:"+";font-family:var(--mono);width:20px;height:20px;border-radius:5px;background:var(--sunk);display:grid;place-items:center;font-size:13px}
+details.full[open] summary::before{content:"−"}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{padding:9px 14px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:500;color:var(--muted);font-size:12.5px;border-bottom:1px solid var(--line);font-family:var(--mono);text-transform:uppercase;letter-spacing:.03em}
+tbody tr+tr td{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+tr.grp td{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:14px;background:var(--bg)}
+tr.base td{color:var(--ink)}
+tr.base td:first-child::after{content:"base";font-family:var(--mono);font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:8px}
+tr.ours td{background:var(--accent-soft);color:var(--ink)}
+tr.ours td:first-child{font-weight:600}
+td.best{font-weight:700}
+
+/* ablation */
+.abl{display:grid;gap:4px}
+.abl-row{display:grid;grid-template-columns:minmax(150px,240px) 1fr 48px;gap:16px;align-items:center;font-size:14px;padding:6px 0}
+.abl-row .lab{color:var(--ink-2)}
+.abl-row.ours .lab{color:var(--ink);font-weight:600}
+.abl-row .v{font-family:var(--mono);font-size:13px;text-align:right}
+.abl-row.ours .v{color:var(--accent-ink);font-weight:500}
+.dot-track{position:relative;height:22px}
+.dot-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+.dot-track .stem{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--clay-2)}
+.dot-track .dot{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--clay)}
+.abl-row.ours .dot{background:var(--accent);width:14px;height:14px;margin:-7px 0 0 -7px}
+.abl-row.ours .stem{background:var(--accent)}
+.abl-axis{display:grid;grid-template-columns:minmax(150px,240px) 1fr 48px;gap:16px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.abl-axis .ticks{display:flex;justify-content:space-between}
+@media (max-width:560px){.abl-row,.abl-axis{grid-template-columns:120px 1fr 40px;gap:10px;font-size:13px}}
+
+/* bibtex */
+.bib{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.bib pre{margin:0;padding:20px 22px;font:13px/1.7 var(--mono);overflow-x:auto;color:var(--ink-2)}
+.copy{position:absolute;top:12px;right:12px;font:500 12.5px var(--sans);border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer}
+.copy:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+footer{margin-top:96px;border-top:1px solid var(--line);padding:28px 0 40px;color:var(--muted);font-size:13.5px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--ink-2)}
+
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><i></i>Video-Coder</a>
+    <div class="navlinks">
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#examples">Examples</a>
+      <a href="#citation">Citation</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top">
+  <div class="wrap">
+    <div class="eyebrow">Code-driven video generation</div>
+    <h1><span class="name">Video-Coder</span><span class="sub">Reinforcing Agentic Coding for Video Generation</span></h1>
+
+    <div class="authors">
+      <span>Chaoyang Wang<sup>1</sup></span><span>Sicheng Gao<sup>2</sup></span><span>Junan Hu<sup>3</sup></span><span>Kunyang Li<sup>1</sup></span><span>Dongyang Chen<sup>4</sup></span><span>Yiyang Zhou<sup>5</sup></span><span>Huaxiu Yao<sup>5</sup></span><span>Yong Jae Lee<sup>6</sup></span><span>Radu Timofte<sup>2</sup></span><span>Yuzhang Shang<sup>1,†</sup></span>
+    </div>
+    <div class="affils">
+      <span><sup>1</sup> University of Central Florida</span><span><sup>2</sup> University of Würzburg</span><span><sup>3</sup> Microsoft Research</span><span><sup>4</sup> Tsinghua University</span><span><sup>5</sup> UNC-Chapel Hill</span><span><sup>6</sup> UW–Madison</span><br><span>† Corresponding author</span>
+    </div>
+
+    <div class="btns">
+      <!-- Swap href for the arXiv link once it is live -->
+      <a class="btn" href="assets/paper.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Paper</a>
+      <a class="btn" href="https://github.com/CYWang735/Video-Coder"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.08 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>Code</a>
+      <a class="btn ghost" href="https://huggingface.co/Video-Coder">🤗 Models</a>
+      <a class="btn ghost" href="https://huggingface.co/datasets/Video-Coder/Train-Data">🤗 Dataset</a>
+    </div>
+
+    <div class="flow" aria-label="Pipeline">
+      <span class="chip">text prompt</span><span class="arr">→</span>
+      <span class="chip">Blender code</span><span class="arr">⟲</span>
+      <span class="chip draft">draft video</span><span class="arr">→</span>
+      <span class="chip final">final video</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <figure class="figure reveal" style="margin-top:8px">
+    <img src="assets/teaser.png" alt="Direct video generation produces count and motion errors; Video-Coder writes code to build a draft video that guides the generator to the correct structure and motion.">
+  </figure>
+  <p class="caption"><b>Direct generation vs. Video-Coder.</b> Instead of prompting the generator directly, Video-Coder writes and runs code to build a 3D scene, renders a draft video, and passes it to the generator as an explicit structure and motion signal.</p>
+
+  <div class="stats reveal">
+    <div class="stat"><div class="v up">+23.6<small>pts</small></div><div class="k">VBench-2.0 average<em>54.58 → 78.19% over MiniMax-H3</em></div></div>
+    <div class="stat"><div class="v up">+0.06</div><div class="k">PhyGenBench average<em>0.61 → 0.67, best on all 4 categories</em></div></div>
+    <div class="stat"><div class="v">88.7<small>%</small></div><div class="k">VBench-2.0 Mechanics<em>+21.08 over the base generator</em></div></div>
+    <div class="stat"><div class="v">10k<small>+4k</small></div><div class="k">Open datasets<em>Video-Coder-SFT-10k · RL-4k</em></div></div>
+  </div>
+
+  <!-- Abstract -->
+  <section id="abstract">
+    <div class="sec-head reveal">
+      <div class="sec-num">01 · Abstract</div>
+      <h2>Video generators get the pixels right but the physics wrong. Code can fix the structure.</h2>
+    </div>
+    <div class="body abstract reveal">
+      <p>Recent years have witnessed remarkable progress in video generation in terms of visual quality and temporal consistency. However, generating videos with precise spatial structure, coherent motion dynamics, and controllable scene composition remains challenging. We introduce <b>Video-Coder</b>, the first attempt to train a code-driven video generation agent, which autonomously writes and executes code to construct a dynamic 3D scene (<b>Draft Video</b>) that provides structure and motion signals to downstream video generators.</p>
+      <p>To support this paradigm, we design a dedicated data pipeline and curate two datasets, <b>Video-Coder-SFT-10k</b> and <b>Video-Coder-RL-4k</b>, with diverse prompts and ground-truth reference videos. We further develop the <b>Video-Coder Harness</b>, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback for agent training and inference. We then train Video-Coder with SFT followed by harness-native agentic reinforcement learning with dual reward feedback, combining execution-based and video-based rewards, and an annealing strategy that gradually shifts weight toward the video reward.</p>
+      <p>Experiments show that Video-Coder improves MiniMax-H3 by approximately 7 points on PhyGenBench and 24 points on VBench-2.0. We fully open-source our data, models, and code.</p>
+    </div>
+  </section>
+
+  <!-- Method -->
+  <section id="method">
+    <div class="sec-head reveal">
+      <div class="sec-num">02 · Harness</div>
+      <div>
+        <h2>Write, run, look, revise.</h2>
+        <p class="lede">The agent works inside the Video-Coder Harness: a sandbox with Blender installed. Every scene is rendered as untextured gray clay, so the draft carries only structure and motion, and appearance is left to the video generator.</p>
+      </div>
+    </div>
+
+    <div class="loop reveal">
+      <div class="steps" id="steps">
+        <div class="step on" data-i="0"><div class="n">01</div><div><h3>Write the scene</h3><p>From the prompt, the agent plans objects, layout, motion and camera, then writes a Blender Python program.</p></div></div>
+        <div class="step" data-i="1"><div class="n">02</div><div><h3>Check &amp; render</h3><p>It calls <code>check_script</code> for a fast static check and <code>run_blender</code> to execute and render the draft.</p></div></div>
+        <div class="step" data-i="2"><div class="n">03</div><div><h3>Read the feedback</h3><p>The harness returns tracebacks, content checks (empty frames, static video, objects off-screen) and sampled frames.</p></div></div>
+        <div class="step" data-i="3"><div class="n">04</div><div><h3>Revise &amp; submit</h3><p>The agent edits its code until the draft matches. On submit, the harness re-runs the script from scratch and only accepts it if it passes again.</p></div></div>
+      </div>
+      <div class="term" aria-live="polite">
+        <div class="bar"><i></i><i></i><i></i><span id="term-title">main.py</span></div>
+        <pre id="term"></pre>
+        <div class="note">Illustrative trace of one episode</div>
+      </div>
+    </div>
+
+    <div class="subhead reveal">Data pipeline</div>
+    <figure class="figure reveal">
+      <img src="assets/pipeline.png" alt="Four-stage data pipeline: text prompt construction, agentic trajectory generation, ground-truth video synthesis, data cleaning and filtering." loading="lazy">
+    </figure>
+    <p class="caption"><b>Four-stage data construction.</b> Captions are rewritten into scene-centric prompts; Gemini 3.8 Flash produces multi-turn trajectories in the harness; MiniMax-H3 turns each draft into a ground-truth video; three filters keep only valid, high-quality, prompt-consistent samples.</p>
+
+    <div class="grid3 reveal">
+      <div class="card"><span class="tag">Stage 1 · SFT</span><h3>Learn to be a coding agent</h3><p>Qwen3.5-9B is fine-tuned on 10k multi-turn harness trajectories: planning, writing Blender code, calling tools, and reacting to feedback.</p></div>
+      <div class="card"><span class="tag">Stage 2 · Agentic RL</span><h3>Optimize for the final video</h3><p>GRPO on 4k prompt–reference pairs, with rollouts executed live in the harness and drafts rendered into videos by a frozen generator.</p></div>
+      <div class="card"><span class="tag">Transfer</span><h3>Works with other generators</h3><p>Trained with MiniMax-H3 in the loop, the same agent also lifts OmniWeaving at test time (0.48 → 0.51 on PhyGenBench).</p></div>
+    </div>
+
+    <div class="subhead reveal">Annealed dual reward</div>
+    <div class="card anneal reveal">
+      <div>
+        <div class="formula"><i>R</i> = <i>α</i> · <i>R</i><sub>video</sub> + <i>e</i><sup>−step / T</sup> · <i>R</i><sub>exe</sub></div>
+        <p style="text-align:center;margin-top:6px">Early on, most rollouts crash, so the binary execution reward teaches reliable tool calls. Its weight decays over training, handing control to the video reward (a VLM judge comparing against the reference video). <i>α</i> = 0.5.</p>
+        <div class="slider">
+          <label><span>training progress</span><span id="prog-l">0%</span></label>
+          <input type="range" id="prog" min="0" max="100" value="0" aria-label="Training progress">
+          <div class="weights">
+            <div><b id="w-exe">1.00</b><span>execution weight</span></div>
+            <div><b id="w-vid">0.50</b><span>video weight (α)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 320 210" role="img" aria-label="Reward weights over training">
+          <g id="grid"></g>
+          <path id="c-exe" fill="none" stroke="var(--clay)" stroke-width="2.5"/>
+          <line id="c-vid" stroke="var(--accent)" stroke-width="2.5"/>
+          <line id="cursor" stroke="var(--ink)" stroke-dasharray="3 3" stroke-width="1"/>
+          <circle id="d-exe" r="4.5" fill="var(--clay)"/>
+          <circle id="d-vid" r="4.5" fill="var(--accent)"/>
+          <text x="292" y="200" text-anchor="end">step / T →</text>
+        </svg>
+        <div class="legend" style="justify-content:center;margin:6px 0 0"><span><i style="background:var(--clay)"></i>execution weight</span><span><i style="background:var(--accent)"></i>video weight</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section id="results">
+    <div class="sec-head reveal">
+      <div class="sec-num">03 · Results</div>
+      <div>
+        <h2>Same generator, better physics.</h2>
+        <p class="lede">Video-Coder only changes what the generator is conditioned on. Adding its draft video to MiniMax-H3 lifts every physics dimension on both benchmarks.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="pgb">PhyGenBench</button>
+        <button role="tab" aria-selected="false" data-tab="vb">VBench-2.0</button>
+      </div>
+      <div class="legend"><span><i style="background:var(--clay-2)"></i>MiniMax-H3</span><span><i style="background:var(--accent)"></i>+ Video-Coder-9B</span></div>
+
+      <div class="panel" id="pgb">
+        <div class="gains" data-max="1"></div>
+        <details class="full">
+          <summary>Full PhyGenBench table · 15 methods</summary>
+          <div class="tbl"><table>
+            <thead><tr><th>Method</th><th>Mechanics</th><th>Optics</th><th>Thermal</th><th>Material</th><th>Average</th></tr></thead>
+            <tbody>
+              <tr class="grp"><td colspan="6">Commercial</td></tr>
+              <tr><td>Pika</td><td>0.35</td><td>0.56</td><td>0.43</td><td>0.39</td><td>0.44</td></tr>
+              <tr><td>Gen-3</td><td>0.45</td><td>0.57</td><td>0.49</td><td>0.51</td><td>0.51</td></tr>
+              <tr><td>Kling</td><td>0.45</td><td>0.58</td><td>0.50</td><td>0.40</td><td>0.49</td></tr>
+              <tr class="grp"><td colspan="6">Open models</td></tr>
+              <tr><td>CogVideoX</td><td>0.39</td><td>0.55</td><td>0.40</td><td>0.42</td><td>0.45</td></tr>
+              <tr><td>Open-Sora V1.2</td><td>0.43</td><td>0.50</td><td>0.44</td><td>0.37</td><td>0.44</td></tr>
+              <tr><td>LaVie</td><td>0.30</td><td>0.44</td><td>0.38</td><td>0.32</td><td>0.36</td></tr>
+              <tr><td>Vchitect-2.0</td><td>0.41</td><td>0.56</td><td>0.44</td><td>0.37</td><td>0.45</td></tr>
+              <tr class="base"><td>MiniMax-H3</td><td>0.61</td><td>0.73</td><td>0.52</td><td>0.55</td><td>0.61</td></tr>
+              <tr><td>HunyuanVideo</td><td>0.33</td><td>0.39</td><td>0.26</td><td>0.30</td><td>0.33</td></tr>
+              <tr><td>OmniWeaving</td><td>0.48</td><td>0.56</td><td>0.43</td><td>0.39</td><td>0.48</td></tr>
+              <tr><td>Wan2.2-TI2V-5B</td><td>0.55</td><td>0.58</td><td>0.53</td><td>0.50</td><td>0.54</td></tr>
+              <tr><td>Cosmos-Predict2.5</td><td>0.30</td><td>0.33</td><td>0.41</td><td>0.39</td><td>0.35</td></tr>
+              <tr><td>LTX-Video-2B</td><td>0.51</td><td>0.58</td><td>0.48</td><td>0.45</td><td>0.51</td></tr>
+              <tr><td>Video-CoCo</td><td>0.51</td><td>0.58</td><td>0.48</td><td>0.45</td><td>0.51</td></tr>
+              <tr class="grp"><td colspan="6">Ours</td></tr>
+              <tr class="ours"><td>Video-Coder-9B + OmniWeaving</td><td>0.52</td><td>0.58</td><td>0.52</td><td>0.44</td><td>0.51</td></tr>
+              <tr class="ours"><td>Video-Coder-9B + MiniMax-H3</td><td class="best">0.68</td><td class="best">0.79</td><td class="best">0.60</td><td class="best">0.61</td><td class="best">0.67</td></tr>
+            </tbody>
+          </table></div>
+        </details>
+      </div>
+
+      <div class="panel" id="vb" hidden>
+        <div class="gains" data-max="100"></div>
+        <details class="full">
+          <summary>Full VBench-2.0 table · physical dimensions</summary>
+          <div class="tbl"><table>
+            <thead><tr><th>Method</th><th>Mechanics</th><th>Thermotics</th><th>Material</th><th>Average</th></tr></thead>
+            <tbody>
+              <tr><td>Sora</td><td>62.22%</td><td>43.36%</td><td>64.94%</td><td>56.84%</td></tr>
+              <tr><td>Kling 1.6</td><td>65.55%</td><td>59.46%</td><td>68.00%</td><td>64.34%</td></tr>
+              <tr><td>HunyuanVideo</td><td>76.09%</td><td>56.52%</td><td>64.37%</td><td>65.66%</td></tr>
+              <tr class="base"><td>MiniMax-H3</td><td>67.59%</td><td>47.22%</td><td>48.94%</td><td>54.58%</td></tr>
+              <tr><td>CogVideoX-1.5</td><td>80.80%</td><td>67.13%</td><td class="best">83.19%</td><td>77.04%</td></tr>
+              <tr class="ours"><td>Video-Coder-9B + MiniMax-H3</td><td class="best">88.67%</td><td class="best">70.88%</td><td>75.02%</td><td class="best">78.19%</td></tr>
+            </tbody>
+          </table></div>
+        </details>
+      </div>
+    </div>
+
+    <div class="subhead reveal">Ablation · PhyGenBench average</div>
+    <div class="card reveal">
+      <div class="abl" id="abl"></div>
+      <div class="abl-axis"><span></span><div class="ticks"><span>0.60</span><span>0.62</span><span>0.64</span><span>0.66</span><span>0.68</span></div><span></span></div>
+      <p style="margin-top:16px;font-size:14px">SFT alone gets part of the way; agentic RL adds the rest. Dropping either reward, or keeping both at fixed weights, costs 0.02–0.04. Without annealing, the agent over-fits to the execution reward and writes safe but conservative programs.</p>
+    </div>
+  </section>
+
+  <!-- Examples -->
+  <section id="examples">
+    <div class="sec-head reveal">
+      <div class="sec-num">04 · Examples</div>
+      <div>
+        <h2>The draft decides the count, layout and motion. The generator adds the look.</h2>
+        <p class="lede">Three cars, three boats: object counts and placement set in code carry straight through to the final video.</p>
+      </div>
+    </div>
+    <figure class="figure reveal">
+      <img src="assets/qualitative.png" alt="Four examples, each showing the prompt, frames of the gray clay draft video, and frames of the final generated video." loading="lazy">
+    </figure>
+    <p class="caption"><b>Prompt → draft video → generated video.</b> Vehicles, human actions and object interactions.</p>
+  </section>
+
+  <!-- Citation -->
+  <section id="citation">
+    <div class="sec-head reveal">
+      <div class="sec-num">05 · Citation</div>
+      <h2>BibTeX</h2>
+    </div>
+    <div class="bib reveal">
+      <button class="copy" id="copy">Copy</button>
+<pre id="bibtex">@article{wang2026videocoder,
+  title   = {Video-Coder: Reinforcing Agentic Coding for Video Generation},
+  author  = {Wang, Chaoyang and Gao, Sicheng and Hu, Junan and Li, Kunyang and
+             Chen, Dongyang and Zhou, Yiyang and Yao, Huaxiu and Lee, Yong Jae and
+             Timofte, Radu and Shang, Yuzhang},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</pre>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Video-Coder · Reinforcing Agentic Coding for Video Generation</span>
+    <span>Built on <a href="https://github.com/modelscope/ms-swift">ms-swift</a>, <a href="https://github.com/volcengine/verl">verl</a>, <a href="https://github.com/SWE-agent/mini-swe-agent">mini-swe-agent</a> &amp; <a href="https://github.com/sgl-project/sglang">SGLang</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  /* reveal on scroll */
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), {threshold: .12});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* harness terminal */
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const frames = [
+    {t:'main.py', h:
+`<span class="c"># prompt: a sphere rolls down a ramp and knocks over three stacked cubes</span>
+<span class="k">import</span> bpy, math
+
+ramp = add_box(<span class="s">"ramp"</span>, size=(4, 1, 0.1), rot=(0, math.radians(-20), 0))
+ball = add_sphere(<span class="s">"ball"</span>, r=0.25, loc=(-1.8, 0, 1.6))
+<span class="k">for</span> i <span class="k">in</span> range(<span class="p">3</span>):
+    add_cube(<span class="s">f"cube_{i}"</span>, size=0.4, loc=(2.2, 0, 0.2 + 0.4*i))
+
+enable_rigid_body([ball, *cubes], ramp=ramp)
+orbit_camera(target=(1, 0, 0), degrees=<span class="p">90</span>, frames=120)`},
+    {t:'harness', h:
+`<span class="p">$</span> check_script main.py
+<span class="ok">✓ syntax ok · camera found · render call found</span>
+
+<span class="p">$</span> run_blender main.py
+  rendering 120 frames @ 24 fps (gray clay) ...
+<span class="ok">✓ wrote render.mp4</span>`},
+    {t:'feedback', h:
+`<span class="c">── content checks ─────────────────────</span>
+frames      120 / 120 non-empty
+motion      <span class="ok">ok</span>
+objects     ball, ramp, cube_0..2
+<span class="err">⚠ cube_2 leaves the view at frame 71</span>
+
+<span class="c">── visual feedback ────────────────────</span>
+[frame 0]  [frame 40]  [frame 80]  [frame 119]`},
+    {t:'main.py · turn 2', h:
+`<span class="c"># widen framing so the falling cubes stay in shot</span>
+orbit_camera(target=(1.4, 0, 0), degrees=<span class="p">90</span>,
+             frames=120, <span class="k">distance=7.5</span>)
+
+<span class="p">$</span> run_blender main.py   <span class="ok">✓ all checks pass</span>
+<span class="p">$</span> submit
+  re-running from a clean directory ... <span class="ok">✓ accepted</span>
+  → draft video exported to the video generator`}
+  ];
+  const term = document.getElementById('term'), title = document.getElementById('term-title');
+  const steps = [...document.querySelectorAll('.step')];
+  let cur = 0, timer;
+  function show(i){ cur=i; steps.forEach((s,j)=>s.classList.toggle('on', j===i)); term.innerHTML = frames[i].h; title.textContent = frames[i].t; }
+  function auto(){ clearInterval(timer); timer = setInterval(()=>show((cur+1)%frames.length), 4200); }
+  steps.forEach((s,i)=>s.addEventListener('click',()=>{ show(i); auto(); }));
+  show(0);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) auto();
+
+  /* annealing chart */
+  const W=320,H=210,L=34,R=300,T=14,B=180, y=v=>B-(v/1.1)*(B-T), x=p=>L+p*(R-L);
+  const g=document.getElementById('grid'); let gh='';
+  [0,.25,.5,.75,1].forEach(v=>{ gh+=`<line x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${v.toFixed(2)}</text>`; });
+  [0,.5,1].forEach(p=>{ gh+=`<text x="${x(p)}" y="${B+14}" text-anchor="middle">${p}</text>`; });
+  g.innerHTML=gh;
+  let d=''; for(let i=0;i<=60;i++){const p=i/60; d+=(i?'L':'M')+x(p).toFixed(1)+','+y(Math.exp(-p)).toFixed(1);} document.getElementById('c-exe').setAttribute('d',d);
+  const cv=document.getElementById('c-vid'); cv.setAttribute('x1',L);cv.setAttribute('x2',R);cv.setAttribute('y1',y(.5));cv.setAttribute('y2',y(.5));
+  const prog=document.getElementById('prog');
+  function upd(){ const p=prog.value/100, e=Math.exp(-p);
+    document.getElementById('prog-l').textContent=prog.value+'%';
+    document.getElementById('w-exe').textContent=e.toFixed(2);
+    const cu=document.getElementById('cursor'); cu.setAttribute('x1',x(p));cu.setAttribute('x2',x(p));cu.setAttribute('y1',T);cu.setAttribute('y2',B);
+    const de=document.getElementById('d-exe'); de.setAttribute('cx',x(p)); de.setAttribute('cy',y(e));
+    const dv=document.getElementById('d-vid'); dv.setAttribute('cx',x(p)); dv.setAttribute('cy',y(.5)); }
+  prog.addEventListener('input',upd); upd();
+
+  /* gains bars */
+  const data = {
+    pgb:{max:1, fmt:v=>v.toFixed(2), rows:[['Mechanics',.61,.68],['Optics',.73,.79],['Thermal',.52,.60],['Material',.55,.61],['Average',.61,.67]]},
+    vb:{max:100, fmt:v=>v.toFixed(2)+'%', rows:[['Mechanics',67.59,88.67],['Thermotics',47.22,70.88],['Material',48.94,75.02],['Average',54.58,78.19]]}
+  };
+  for (const id in data){
+    const {max,fmt,rows}=data[id], host=document.querySelector('#'+id+' .gains');
+    host.innerHTML = rows.map(([k,a,b])=>{
+      const dlt = id==='pgb' ? '+'+(b-a).toFixed(2) : '+'+(b-a).toFixed(2)+' pts';
+      return `<div class="gain"><span class="lab ${k==='Average'?'avg':''}">${k}</span>
+        <div class="track"><div class="b base" data-w="${a/max*100}" style="width:0"></div><div class="b ours" data-w="${b/max*100}" style="width:0"></div></div>
+        <span class="num">${fmt(a)} → <b>${fmt(b)}</b><br><span class="d">${dlt}</span></span></div>`; }).join('');
+  }
+  const grow = root => root.querySelectorAll('.b').forEach(b=>b.style.width=b.dataset.w+'%');
+  const gio = new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ grow(e.target); gio.unobserve(e.target);} }),{threshold:.3});
+  document.querySelectorAll('.gains').forEach(g=>gio.observe(g));
+  document.querySelectorAll('[role=tab]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[role=tab]').forEach(o=>o.setAttribute('aria-selected', o===b));
+    document.querySelectorAll('.panel').forEach(p=>p.hidden = p.id!==b.dataset.tab);
+    const g=document.querySelector('#'+b.dataset.tab+' .gains'); requestAnimationFrame(()=>grow(g));
+  }));
+
+  /* ablation dot plot */
+  const abl=[['MiniMax-H3 (no agent)',.61],['+ Video-Coder-SFT',.63],['+ RL w/o annealing',.65],['+ RL w/o video reward',.64],['+ RL w/o execution reward',.63],['+ Video-Coder (full)',.67]];
+  const lo=.60, hi=.68, pos=v=>(v-lo)/(hi-lo)*100;
+  document.getElementById('abl').innerHTML = abl.map(([k,v],i)=>`<div class="abl-row ${i===abl.length-1?'ours':''}"><span class="lab">${k}</span>
+    <div class="dot-track"><div class="stem" style="left:0;width:${pos(v)}%"></div><div class="dot" style="left:${pos(v)}%"></div></div><span class="v">${v.toFixed(2)}</span></div>`).join('');
+
+  /* copy bibtex */
+  document.getElementById('copy').addEventListener('click',e=>{
+    navigator.clipboard.writeText(document.getElementById('bibtex').textContent).then(()=>{ e.target.textContent='Copied'; setTimeout(()=>e.target.textContent='Copy',1500); });
+  });
+})();
+</script>
+</body>
+</html>
