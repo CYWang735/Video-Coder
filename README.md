@@ -1,6 +1,6 @@
 # Video-Coder: Reinforcing Agentic Coding for Video Generation
 
-[Overview](#-about-video-coder) · [Datasets](#-datasets) · [Results](#-performance) · [Training](#-training) · [Video Generation](#-video-generation)
+[Overview](#-about-video-coder) · [Datasets](#-datasets) · [Results](#-performance) · [Training](#-training) · [Inference](#-inference)
 
 ## 👀 About Video-Coder
 
@@ -138,7 +138,7 @@ bash examples/video_coder/train_video_coder_rl.sh
 
 We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server.
 
-## 🔮 Video Generation
+## 🔮 Inference
 
 Follow the [MiniMax-H3 deployment and generation guide](./Minimax-H3-server/README.md) to convert draft videos into generated videos.
 
