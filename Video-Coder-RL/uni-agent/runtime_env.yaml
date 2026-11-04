@@ -15,20 +15,19 @@ env_vars:
   WANDB_MODE: "online"
   # Keep run files on shared storage: the default (the Ray job's working dir under
   # /tmp) is wiped when the Slurm job ends.
-  WANDB_DIR: "/home/hpc/v189bd/v189bd13/wangcy/uni_agent_logs/wandb"
   # First pulls of multi-GB SWE images happen inside sandbox start(); pre-pull, and
   # give cold starts room anyway.
   SANDBOX_STARTUP_TIMEOUT: "3600"
   # HuggingFace caches: ~/.cache lives on /hnvme (file-count quota, currently over the hard
   # limit), and datasets writes its filter/map results there when the dataloader starts.
   # Explicit values because proxy.sh exports HF_HOME / HF_DATASETS_CACHE into the Ray head.
-  HF_HOME: "/tmp/v189bd13/hf_home"
-  HF_DATASETS_CACHE: "/tmp/v189bd13/hf_datasets_cache"
+  HF_HOME: "/tmp/uni-agent/hf_home"
+  HF_DATASETS_CACHE: "/tmp/uni-agent/hf_datasets_cache"
   # JIT compile caches create thousands of files: keep them node-local, off the
   # /hnvme (~/.cache) file quota.
-  VLLM_CACHE_ROOT: "/tmp/v189bd13-vllm-cache"
-  TRITON_CACHE_DIR: "/tmp/v189bd13-triton-cache"
-  TORCHINDUCTOR_CACHE_DIR: "/tmp/v189bd13-inductor-cache"
+  VLLM_CACHE_ROOT: "/tmp/uni-agent-vllm-cache"
+  TRITON_CACHE_DIR: "/tmp/uni-agent-triton-cache"
+  TORCHINDUCTOR_CACHE_DIR: "/tmp/uni-agent-inductor-cache"
   # Qwen3.5 GatedDeltaNet runs on flash-linear-attention (see the repository README, Training / Setup). Its TileLang
   # backend (if tilelang is installed) JIT-compiles
   # a kernel for every new sequence length (~20 s each); the Triton kernels serve any length.

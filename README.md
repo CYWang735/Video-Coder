@@ -80,7 +80,15 @@ pip install --no-deps transferqueue==0.1.11 fla-core==0.5.2 flash-linear-attenti
 pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
 ```
 
-The RL stage also needs the Blender sandbox of the Video-Coder Harness: an Apptainer image with Blender 4.5 / `bpy` and a [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) (≥ 2.4) tool directory.
+The RL stage runs the Video-Coder Harness in an [Apptainer](https://apptainer.org) sandbox. Build the Blender image and the [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) tool directory once (needs internet; add `--fakeroot` to `apptainer build` if your cluster requires it):
+
+```bash
+cd Video-Coder-RL/uni-agent
+apptainer build bpy-agent.sif examples/video_coder/bpy-agent.def
+bash examples/mini_swe_agent/build_tool_apptainer.sh build $PWD/mini-swe-agent-tool.tar.gz
+bash examples/mini_swe_agent/build_tool_apptainer.sh extract $PWD/mini-swe-agent-tool.tar.gz $PWD/mini-swe-agent-tool
+bash examples/video_coder/install_harness.sh $PWD/mini-swe-agent-tool
+```
 
 Download the training data from [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data) and unzip the ground-truth videos in place, so that the `gt_video` paths in `rl_data.json` resolve. Then put `sft_data.json` under `Video-Coder-SFT/ms-swift/data/`.
 
@@ -121,7 +129,7 @@ HOST=0.0.0.0 PORT=30011 bash serve.sh
 
 The draft video of each accepted rollout is turned into a video by MiniMax-H3, and a VLM judge (`qwen3.8-omni-flash` on DashScope) scores it against the ground-truth video. You may also change to other video generators or judges by revising the `video_reward` section of the task config and [`video_reward.py`](./Video-Coder-RL/uni-agent/uni_agent/tasks/video_coder/video_reward.py).
 
-Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls`, a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path, the sandbox `image` and `binds`, and `agent.step_limit: 100` (as in our run). Export your `DASHSCOPE_API_KEY` on every node before starting Ray.
+Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls`, a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path, and the sandbox `image` (`bpy-agent.sif`) and `binds` (the tool directory and `examples/video_coder`) to your paths. Export your `DASHSCOPE_API_KEY` on every node before starting Ray. Training logs to [wandb](https://wandb.ai) by default: run `wandb login` first, or set `TRAINER_LOGGER="['console']"`. With several nodes, the data, `CKPTS_DIR` and `shared_dir` must be on storage that every node sees.
 
 Finally, start the RL training based on the SFT model.
 

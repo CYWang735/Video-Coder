@@ -31,7 +31,7 @@ export EXP_NAME=${EXP_NAME:-video_coder_$(date +%Y%m%d%H%M)}
 # Checkpoints are large (weights + optimizer state): put them on storage with room. The default is
 # node-local and disappears with the Slurm job.
 export CKPTS_DIR=${CKPTS_DIR:-/tmp/$USER/ckpts/$PROJECT_NAME/$EXP_NAME}
-export AGENT_LOG_DIR=${AGENT_LOG_DIR:-$HOME/wangcy/uni_agent_logs/$EXP_NAME}
+export AGENT_LOG_DIR=${AGENT_LOG_DIR:-$PWD/logs/$EXP_NAME}
 export SERVED_MODEL_NAME=${SERVED_MODEL_NAME:-$(basename "$MODEL_PATH")}
 
 # Resources (one node). Each vLLM replica holds the full model at GEN_TP=1.

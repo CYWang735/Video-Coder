@@ -1,0 +1,14 @@
+Bootstrap: docker
+From: python:3.11-slim-bookworm
+
+%post
+    # Shared libraries the bpy wheel loads at import (X11/GL stubs; no display is used),
+    # plus tools a coding agent typically needs.
+    apt-get update && apt-get install -y --no-install-recommends \
+        git libx11-6 libxrender1 libxxf86vm1 libxfixes3 libxi6 libxkbcommon0 libsm6 \
+        libgl1 libegl1 libgomp1 \
+        && rm -rf /var/lib/apt/lists/*
+    pip install --no-cache-dir "bpy==4.5.14"
+
+%test
+    python3 -c "import bpy; print('bpy', bpy.app.version_string)"
