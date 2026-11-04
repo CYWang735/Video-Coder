@@ -1,4 +1,4 @@
-"""Video-Coder task: write a bpy script for a scene description; reward = vcsft acceptance (+ video reward).
+"""Video-Coder task: write a bpy script for a scene description; reward = Video-Coder harness acceptance (+ video reward).
 
 The ``video_coder`` agent runs the harness and re-renders the submitted script from scratch inside the
 sandbox. Without ``video_reward`` the reward is the acceptance: 1.0 if accepted (submitted, static check ok,

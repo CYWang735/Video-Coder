@@ -3,4 +3,4 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 py="${VCSFT_PYTHON:-$root/.venv/bin/python}"
-PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m vcsft.static_check "$@"
+PYTHONPATH="$root${PYTHONPATH:+:$PYTHONPATH}" exec "$py" -m video_coder_harness.static_check "$@"

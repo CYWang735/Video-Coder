@@ -1,7 +1,7 @@
 # Visual-feedback variant: run_blender returns preview frames as images in tool results, so the
 # gateway must merge images mid-session (needs PR #214 and qwen_vl_utils).
-# Video-Coder (Blender/bpy) task: vcsft harness in the bpy-agent.sif container.
-# Harness: examples/video_coder (run_agent.py, vcsft/, bin/, configs/), bound read-only at /opt/video-coder;
+# Video-Coder (Blender/bpy) task: Video-Coder harness in the bpy-agent.sif container.
+# Harness: examples/video_coder (run_agent.py, video_coder_harness/, bin/, configs/), bound read-only at /opt/video-coder;
 # prompts are in examples/video_coder/configs/teacher.yaml (+ uni_container_visual.yaml overlay).
 # Prepare once: bash examples/video_coder/install_harness.sh  (adds imageio-ffmpeg to the tool dir).
 - name: video_coder

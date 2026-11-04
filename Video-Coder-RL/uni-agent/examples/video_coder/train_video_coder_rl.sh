@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# RL for the video_coder (Blender) task: vcsft harness in bpy-agent.sif, reward = 1.0 * accepted
+# RL for the video_coder (Blender) task: Video-Coder harness in bpy-agent.sif, reward = 1.0 * accepted
 # + 0.5 * video reward (MiniMax-H3 Ref2VA + VLM judge against the sample's GT video).
 #
 # Run from the repo root on the GPU node, with a Ray head already running there:

@@ -3,8 +3,8 @@
 # against the sample's GT video (metadata.gt_video; see uni_agent/tasks/video_coder/preprocess.py --gt-field).
 # Both services are deployed separately; set their URLs below. ref2va.request must equal the recipe the GT
 # videos were made with. shared_dir is read by the H3 server via file://, so it must exist on its host too.
-# Video-Coder (Blender/bpy) task: vcsft harness in the bpy-agent.sif container.
-# Harness: examples/video_coder (run_agent.py, vcsft/, bin/, configs/), bound read-only at /opt/video-coder;
+# Video-Coder (Blender/bpy) task: Video-Coder harness in the bpy-agent.sif container.
+# Harness: examples/video_coder (run_agent.py, video_coder_harness/, bin/, configs/), bound read-only at /opt/video-coder;
 # prompts are in examples/video_coder/configs/teacher.yaml (+ uni_container_visual.yaml overlay).
 # Visual feedback is on: run_blender returns preview frames as images in tool results, so the policy must be
 # vision-capable and the gateway merges images mid-session (PR #214, qwen_vl_utils). For text-only feedback use

@@ -34,11 +34,11 @@ from minisweagent import __version__ as mini_version
 from minisweagent.environments import get_environment
 from minisweagent.models import get_model
 
-from vcsft.agent import GuardedAgent
-from vcsft.blender_exec import execute
-from vcsft.judge import judge_video
-from vcsft.static_check import check_file
-from vcsft.tasks import Task, file_sha256, is_safe_task_id, load_tasks
+from video_coder_harness.agent import GuardedAgent
+from video_coder_harness.blender_exec import execute
+from video_coder_harness.judge import judge_video
+from video_coder_harness.static_check import check_file
+from video_coder_harness.tasks import Task, file_sha256, is_safe_task_id, load_tasks
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BIN_DIR = PROJECT_ROOT / "bin"
@@ -47,7 +47,7 @@ _SECRET_ENV = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)
 # Errors after which every further call would fail the same way.
 FATAL_ERRORS = {"AuthenticationError", "NotFoundError", "PermissionDeniedError", "BudgetExhausted"}
 
-logger = logging.getLogger("vcsft")
+logger = logging.getLogger("video_coder_harness")
 
 
 class BudgetExhausted(RuntimeError):
@@ -151,9 +151,9 @@ def config_hash(cfg: dict) -> str:
 
 
 def harness_markers(harness: dict) -> list[str]:
-    """Paths of the harness itself; a command mentioning one is blocked (see vcsft.agent)."""
+    """Paths of the harness itself; a command mentioning one is blocked (see video_coder_harness.agent)."""
     bpy_env_dir = str(Path(os.path.expandvars(harness["bpy_python"])).parent.parent)
-    return [str(PROJECT_ROOT / "vcsft"), str(PROJECT_ROOT / "bin"), str(PROJECT_ROOT / "configs"),
+    return [str(PROJECT_ROOT / "video_coder_harness"), str(PROJECT_ROOT / "bin"), str(PROJECT_ROOT / "configs"),
             bpy_env_dir, os.path.expandvars(harness["bpy_libs"])]
 
 
@@ -327,7 +327,7 @@ def lock_run_dir(run_dir: Path):
         fd.seek(0)
         holder = fd.read().strip() or "unknown process"
         fd.close()
-        sys.exit(f"{run_dir} is in use by another vcsft.generate process ({holder}); wait for it to finish or "
+        sys.exit(f"{run_dir} is in use by another video_coder_harness.generate process ({holder}); wait for it to finish or "
                  "use a different --output directory")
     fd.seek(0)
     fd.truncate()

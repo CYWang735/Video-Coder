@@ -4,11 +4,11 @@
 #   bash install_harness.sh [TOOL_DIR]
 #
 # TOOL_DIR the tool dir bound at /opt/mini-swe-agent (default $HOME/wangcy/mini-swe-agent-tool-2.4.6;
-#          needs mini-swe-agent >= 2.4 -- vcsft's GuardedAgent relies on its agent API)
+#          needs mini-swe-agent >= 2.4 -- the Video-Coder harness's GuardedAgent relies on its agent API)
 #
-# The harness itself is this directory (run_agent.py, vcsft/, bin/, configs/), bound read-only at
+# The harness itself is this directory (run_agent.py, video_coder_harness/, bin/, configs/), bound read-only at
 # /opt/video-coder by task_config_video_coder_apptainer.yaml; nothing is copied. This script only adds the
-# one extra package vcsft needs (imageio-ffmpeg) and checks the imports. Needs internet once (login node).
+# one extra package the Video-Coder harness needs (imageio-ffmpeg) and checks the imports. Needs internet once (login node).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOL="${1:-$HOME/wangcy/mini-swe-agent-tool-2.4.6}"
@@ -18,5 +18,5 @@ TOOL="${1:-$HOME/wangcy/mini-swe-agent-tool-2.4.6}"
 "${TOOL}/bin/python" -I -m pip check
 "${TOOL}/bin/python" -I -B -c "
 import sys; sys.path.insert(0, '${HERE}')
-import vcsft.agent, vcsft.models, vcsft.generate, vcsft.blender_exec, vcsft.static_check
+import video_coder_harness.agent, video_coder_harness.models, video_coder_harness.generate, video_coder_harness.blender_exec, video_coder_harness.static_check
 print('video_coder harness imports ok')"

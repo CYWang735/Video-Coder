@@ -7,8 +7,8 @@ The tags are cut out of the text *before* the observation template runs (the tem
 and the images are attached to the tool result as real image parts, each preceded by its caption:
     Responses API: function_call_output.output = [input_text, input_text(caption), input_image, ...]
     Chat Completions: tool message content = [text, text(caption), image_url, ...]
-Select with `model_class: vcsft.models.VisualResponseModel` (teacher) or `vcsft.models.VisualChatModel` (vLLM students).
-`vcsft.models.VisualChatUserModel` is the fallback for Chat APIs that reject images inside `tool` messages: the tool message keeps
+Select with `model_class: video_coder_harness.models.VisualResponseModel` (teacher) or `video_coder_harness.models.VisualChatModel` (vLLM students).
+`video_coder_harness.models.VisualChatUserModel` is the fallback for Chat APIs that reject images inside `tool` messages: the tool message keeps
 the text, and one `user` message right after it carries the images.
 """
 

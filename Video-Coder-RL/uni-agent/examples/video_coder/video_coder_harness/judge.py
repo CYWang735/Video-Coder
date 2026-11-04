@@ -10,7 +10,7 @@ from pathlib import Path
 
 import litellm
 
-from vcsft.video import sample_frames
+from video_coder_harness.video import sample_frames
 
 JUDGE_INSTRUCTIONS = """You are a strict reviewer of white-model (untextured clay) Blender renders.
 You get the scene description a video was supposed to depict, then frames sampled evenly from that video, in order.

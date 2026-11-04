@@ -14,7 +14,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from vcsft.video import contact_sheet, frame_stats, probe, sample_frames
+from video_coder_harness.video import contact_sheet, frame_stats, probe, sample_frames
 
 RUN_BPY = Path(__file__).resolve().parent / "run_bpy.py"
 _SECRET_ENV = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL)", re.I)
@@ -155,7 +155,7 @@ HARNESS_DIR = str(Path(__file__).resolve().parent)
 
 def _script_frames(tb: str, script_name: str) -> str:
     """Keep the traceback from the first frame inside the generated script; drop runner/runpy frames and frames
-    of the harness's own guards (vcsft/), whose paths must not leak into trajectories."""
+    of the harness's own guards (video_coder_harness/), whose paths must not leak into trajectories."""
     lines = tb.splitlines()
     start = next((i for i, ln in enumerate(lines) if script_name in ln and ln.lstrip().startswith("File")), None)
     if start is None:
@@ -246,7 +246,7 @@ def main() -> None:
 def frames_attachment(video: Path, n_frames: int, fps: float, harness: dict) -> str:
     """Evenly spaced frames of the render as inline images (mini-swe-agent multimodal tags), one per frame.
 
-    vcsft.models turns each tag into a real image in the tool result, preceded by its caption line.
+    video_coder_harness.models turns each tag into a real image in the tool result, preceded by its caption line.
     """
     frames = sample_frames(video, n_frames, harness.get("preview_frames", 8), harness.get("preview_width", 640))
     lines = [f"rendered frames ({len(frames)} evenly spaced, in order):"]

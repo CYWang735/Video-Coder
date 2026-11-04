@@ -1,9 +1,9 @@
 """Execute a generated script with the `bpy` module and print a JSON scene summary.
 
 Run with the bpy environment (Python 3.11 + bpy 4.5), not the project venv:
-    LD_LIBRARY_PATH=$WORK/envs/bpy45-libs/lib $WORK/envs/bpy45/bin/python vcsft/run_bpy.py main.py
+    LD_LIBRARY_PATH=$WORK/envs/bpy45-libs/lib $WORK/envs/bpy45/bin/python video_coder_harness/run_bpy.py main.py
 The script runs in --cwd (default: a fresh temporary directory); exit code 0 = executed without exception.
-Normally called through vcsft.blender_exec, which sets up the environment, timeout and video checks.
+Normally called through video_coder_harness.blender_exec, which sets up the environment, timeout and video checks.
 """
 
 import argparse

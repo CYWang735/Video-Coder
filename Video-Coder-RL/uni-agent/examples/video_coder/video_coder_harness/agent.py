@@ -26,7 +26,7 @@ _ABS_WRITE = re.compile(r"(?:(?<![0-9&<])>>?|\btee(?:\s+-a)?|\b(?:mkdir|touch)(?
 _ABS_TARGET = re.compile(r"\b(?:cp|mv|ln|install|rsync)\b[^\n;|&]*\s['\"]?(/(?!dev/null\b)[^\s'\";|&]+)['\"]?\s*(?:$|[;|&\n])")
 # Whole-text rules (here-document bodies included, so `python3 - <<EOF ... open(...)` is covered too):
 # harness variables and locations that hold credentials or lie outside the task directory.
-_VCSFT_VAR = re.compile(r"\bVCSFT_")
+_HARNESS_VAR = re.compile(r"\bVCSFT_")
 _SENSITIVE = re.compile(r"(~/|\$\{?HOME\b|/home/|/root/|\.ssh/|\.netrc\b|\.config/|\.env\b|\bOPENAI_API_KEY\b|"
                         r"\b[A-Z0-9_]*(?:API_KEY|SECRET|TOKEN|PASSWORD)\b|\bsk-[A-Za-z0-9_-]{8,})")
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
@@ -101,7 +101,7 @@ def harness_violation(command: str, harness_markers: list[str], workdir: str = "
     for marker in harness_markers:
         if marker and marker in command:
             return f"it references the harness installation ({marker})"
-    if _VCSFT_VAR.search(command):
+    if _HARNESS_VAR.search(command):
         return "it reads the harness environment variables"
     m = _SENSITIVE.search(_mask_workdir(command, workdir))  # the task directory itself is fine
     if m:
@@ -143,7 +143,7 @@ class GuardedAgentConfig(AgentConfig):
     repeat_similarity: float = 0.9
     """Commands at least this similar (difflib ratio) count as the same."""
     harness_markers: list[str] = []
-    """Strings (paths) whose appearance in a command means it touches the harness; filled in by vcsft.generate."""
+    """Strings (paths) whose appearance in a command means it touches the harness; filled in by video_coder_harness.generate."""
     workdir: str = ""
     """The task directory; absolute paths inside it may be written."""
 

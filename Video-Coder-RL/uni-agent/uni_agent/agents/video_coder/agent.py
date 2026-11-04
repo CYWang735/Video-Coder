@@ -1,11 +1,11 @@
-"""video_coder: the Video-Coder-sftdata harness (mini-swe-agent + vcsft guards/tools) run inside the sandbox.
+"""video_coder: the Video-Coder harness (mini-swe-agent + its guards and tools) run inside the sandbox.
 
 Launched like :mod:`uni_agent.agents.mini_swe_agent`. The harness lives in this repo under
-``examples/video_coder`` (run_agent.py + vcsft/, bin/, configs/) and is bound read-only at /opt/video-coder;
+``examples/video_coder`` (run_agent.py + video_coder_harness/, bin/, configs/) and is bound read-only at /opt/video-coder;
 the mini-swe-agent tool dir (python + packages) is bound at /opt/mini-swe-agent. run_agent.py reads a task
 config from stdin and prints the result JSON. The agent drives the gateway policy through
-mini-swe-agent's tool-call loop with the ``run_blender`` / ``check_script`` tools and vcsft's guards, and
-the result carries vcsft's acceptance verdict (``accepted``).
+mini-swe-agent's tool-call loop with the ``run_blender`` / ``check_script`` tools and the Video-Coder harness's guards, and
+the result carries the Video-Coder harness's acceptance verdict (``accepted``).
 """
 
 from __future__ import annotations

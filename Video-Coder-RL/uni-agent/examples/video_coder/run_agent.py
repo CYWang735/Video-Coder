@@ -1,4 +1,4 @@
-"""Run the Video-Coder-sftdata harness (vcsft GuardedAgent + run_blender/check_script) inside the sandbox.
+"""Run the Video-Coder harness (GuardedAgent + run_blender/check_script) inside the sandbox.
 
 Input:  task config JSON from **stdin**
     - task: str          -- the scene description the agent must turn into a bpy script
@@ -10,7 +10,7 @@ Input:  task config JSON from **stdin**
 
 Output: result JSON (last line of stdout): exit_status, accepted, static check, final render report, guard counters,
 and final_video (path of the accepted re-render inside the sandbox, else null).
-`accepted` is vcsft's acceptance: submitted + static check ok + the final script re-executed from scratch
+`accepted` is the Video-Coder harness's acceptance: submitted + static check ok + the final script re-executed from scratch
 in a fresh directory renders a valid video.
 """
 
@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 os.environ.setdefault("MSWEA_SILENT_STARTUP", "1")
-# This directory (examples/video_coder: run_agent.py + vcsft/ bin/ configs/), bound read-only into the sandbox.
+# This directory (examples/video_coder: run_agent.py + video_coder_harness/ bin/ configs/), bound read-only into the sandbox.
 HARNESS_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(HARNESS_ROOT))
 TOOL_ROOT = "/opt/mini-swe-agent"  # mini-swe-agent tool dir (python + packages)
@@ -42,9 +42,9 @@ def main() -> None:
         from minisweagent.environments import get_environment
         from minisweagent.models import get_model
 
-        from vcsft import generate as g
-        from vcsft.agent import GuardedAgent
-        from vcsft.static_check import check_file
+        from video_coder_harness import generate as g
+        from video_coder_harness.agent import GuardedAgent
+        from video_coder_harness.static_check import check_file
 
         cfg = yaml.safe_load(Path(req.get("config") or HARNESS_ROOT / "configs" / "teacher.yaml").read_text())
         for overlay in req.get("overlays", []):
@@ -56,7 +56,7 @@ def main() -> None:
         # (observation_template / format_error_template are part of what the model sees), swap only the endpoint.
         cfg["model"] = {
             **cfg["model"],
-            "model_class": "vcsft.models.VisualChatModel" if harness.get("visual_feedback") else "litellm",
+            "model_class": "video_coder_harness.models.VisualChatModel" if harness.get("visual_feedback") else "litellm",
             "model_name": "openai/default",
             "cost_tracking": "ignore_errors",
             "model_kwargs": {**cfg["model"].get("model_kwargs", {}), "api_base": req["gateway_url"],
@@ -70,7 +70,7 @@ def main() -> None:
         env_cfg["env"] = g.agent_env_vars(env_cfg.get("env", {}), harness)
         env = get_environment(env_cfg, default_type="local")
         model = get_model(config=dict(cfg["model"]))
-        # vcsft's markers are the bpy env dirs; here bpy is the image's system python (bpy_python's env dir is /usr),
+        # the Video-Coder harness's markers are the bpy env dirs; here bpy is the image's system python (bpy_python's env dir is /usr),
         # and a "/usr" marker would block any command mentioning /usr. Mark the harness, the tool dir and bpy instead.
         markers = [str(HARNESS_ROOT), TOOL_ROOT, BPY_PACKAGE_DIR]
         agent = GuardedAgent(model, env, **cfg["agent"], harness_markers=markers, workdir=str(workspace.resolve()))

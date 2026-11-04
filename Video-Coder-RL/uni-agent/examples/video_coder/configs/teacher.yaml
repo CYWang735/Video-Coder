@@ -15,11 +15,11 @@ harness:
   summary_samples: 6                             # frames sampled for the scene summary shown to the agent
   content_samples: 8                             # frames sampled for the empty / static / out-of-view checks
   # run_blender returns evenly spaced frames of the render as images, so the agent inspects its own result
-  # (needs a vcsft.models.Visual* model class)
+  # (needs a video_coder_harness.models.Visual* model class)
   visual_feedback: true
   preview_frames: 8
   preview_width: 640
-  # optional VLM check of the final render (vcsft/judge.py); off: acceptance uses deterministic checks only
+  # optional VLM check of the final render (video_coder_harness/judge.py); off: acceptance uses deterministic checks only
   judge:
     enabled: false
     model: openai/gpt-6-astra
@@ -38,7 +38,7 @@ model:
   # Native Responses API. Do not use `litellm` (Chat Completions): for gpt-6 models litellm bridges it to the
   # Responses API and drops the function_call items, so every step fails with "No tool calls found".
   # The Responses path also carries the model's encrypted reasoning across turns.
-  model_class: vcsft.models.VisualResponseModel   # litellm_response + images in tool results (run_blender preview)
+  model_class: video_coder_harness.models.VisualResponseModel   # litellm_response + images in tool results (run_blender preview)
   model_name: openai/gpt-6-astra          # litellm "<provider>/<model id>"; confirm the exact id on your OpenAI account
   cost_tracking: ignore_errors            # litellm may not know the price of a new model; budget is enforced by max_calls
   # litellm_model_registry: configs/model_registry.json   # optional: register prices to get real cost numbers
