@@ -84,7 +84,7 @@ bash examples/video_coder/setup/build_sandbox.sh
 Download the training data from [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data) and unzip the ground-truth videos in place, so that the `gt_video` paths in `rl_data.json` resolve. Then put `sft_data.json` under `Video-Coder-SFT/ms-swift/data/`.
 
 ```bash
-huggingface-cli download Video-Coder/Train-Data --repo-type dataset --local-dir data/Train-Data
+hf download Video-Coder/Train-Data --repo-type dataset --local-dir data/Train-Data
 cd data/Train-Data/gt_video && unzip -q gt_video.zip && cd -
 mkdir -p Video-Coder-SFT/ms-swift/data && cp data/Train-Data/sft_data.json Video-Coder-SFT/ms-swift/data/
 ```
@@ -122,7 +122,7 @@ The draft video of each accepted rollout is turned into a video by MiniMax-H3, a
 
 Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls` and a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path (the sandbox paths were filled in by `build_sandbox.sh`). Export your `DASHSCOPE_API_KEY` on every node before starting Ray. Training logs to [wandb](https://wandb.ai) by default: run `wandb login` first, or set `TRAINER_LOGGER="['console']"`. With several nodes, the data, `CKPTS_DIR` and `shared_dir` must be on storage that every node sees.
 
-Finally, start the RL training based on the SFT model.
+Finally, start the RL training based on the SFT model. On Slurm clusters, `unset ROCR_VISIBLE_DEVICES` before `ray start` (Ray and vLLM refuse to start with it), and if you use an HTTP proxy, add `127.0.0.1,localhost` and your node names to `no_proxy`.
 
 ```bash
 cd Video-Coder-RL/uni-agent

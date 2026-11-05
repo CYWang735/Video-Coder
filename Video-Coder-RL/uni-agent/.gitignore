@@ -131,4 +131,4 @@ outputs
 .history
 
 # Video-Coder Harness sandbox (examples/video_coder/setup/build_sandbox.sh): large, never uploaded with Ray jobs
-sandbox/
+/sandbox/
