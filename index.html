@@ -206,6 +206,36 @@ td.best{font-weight:700}
 .abl-axis .ticks{display:flex;justify-content:space-between}
 @media (max-width:560px){.abl-row,.abl-axis{grid-template-columns:120px 1fr 40px;gap:10px;font-size:13px}}
 
+/* video gallery */
+.gallery{display:grid;grid-template-columns:1fr;gap:14px}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:640px){.thumbs{display:flex;overflow-x:auto;padding-bottom:4px}.thumbs button{flex:0 0 132px}}
+.thumbs button{all:unset;cursor:pointer;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.thumbs button:hover{border-color:var(--clay)}
+.thumbs button[aria-selected=true]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.thumbs img{width:100%;aspect-ratio:864/480;object-fit:cover}
+.thumbs span{display:block;padding:8px 11px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2);line-height:1.35}
+.viewer{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:clamp(14px,2vw,22px)}
+.prompt{margin-bottom:16px}
+.plabel{font-family:var(--mono);font-size:11.5px;color:var(--accent-ink);letter-spacing:.06em;text-transform:uppercase}
+.prompt p{margin:6px 0 0;font-family:var(--serif);font-size:19px;line-height:1.45;color:var(--ink)}
+.prompt p.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pmore{all:unset;cursor:pointer;font-size:13px;color:var(--muted);margin-top:4px;text-decoration:underline;text-underline-offset:3px}
+.pmore:hover{color:var(--ink)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+.vid{margin:0}
+.vid video{width:100%;aspect-ratio:864/480;display:block;border-radius:10px;background:var(--sunk);object-fit:cover}
+.vid figcaption{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;margin-top:8px}
+.vid figcaption span{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11.5px;margin-left:auto}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.sw.draft{background:var(--clay)}.sw.final{background:var(--accent)}
+.vctl{display:flex;align-items:center;gap:12px;margin-top:14px}
+.vctl button{all:unset;cursor:pointer;width:30px;height:30px;border-radius:8px;background:var(--sunk);display:grid;place-items:center;font-size:11px;color:var(--ink)}
+.vctl button:hover{background:var(--accent-soft);color:var(--accent-ink)}
+.vbar{flex:1;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.vbar div{height:100%;width:0;background:var(--accent)}
+
 /* bibtex */
 .bib{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px}
 .bib pre{margin:0;padding:20px 22px;font:13px/1.7 var(--mono);overflow-x:auto;color:var(--ink-2)}
@@ -438,13 +468,28 @@ footer a{color:var(--ink-2)}
       <div class="sec-num">04 · Examples</div>
       <div>
         <h2>The draft decides the count, layout and motion. The generator adds the look.</h2>
-        <p class="lede">Three cars, three boats: object counts and placement set in code carry straight through to the final video.</p>
+        <p class="lede">Three cars, three boats: object counts and placement set in code carry straight through to the final video. Pick an example; both clips play in sync.</p>
       </div>
     </div>
-    <figure class="figure reveal">
-      <img src="assets/qualitative.png" alt="Four examples, each showing the prompt, frames of the gray clay draft video, and frames of the final generated video." loading="lazy">
-    </figure>
-    <p class="caption"><b>Prompt → draft video → generated video.</b> Vehicles, human actions and object interactions.</p>
+
+    <div class="gallery reveal">
+      <div class="thumbs" role="tablist" id="thumbs"></div>
+      <div class="viewer">
+        <div class="prompt">
+          <span class="plabel">Prompt</span>
+          <p id="ptext"></p>
+          <button class="pmore" id="pmore" aria-expanded="false">Show full prompt</button>
+        </div>
+        <div class="pair">
+          <figure class="vid"><video id="vd" muted playsinline preload="auto"></video><figcaption><i class="sw draft"></i>Draft video <span>Video-Coder · Blender</span></figcaption></figure>
+          <figure class="vid"><video id="vf" muted playsinline preload="auto"></video><figcaption><i class="sw final"></i>Generated video <span>MiniMax-H3</span></figcaption></figure>
+        </div>
+        <div class="vctl">
+          <button id="vplay" aria-label="Pause">❚❚</button>
+          <div class="vbar"><div id="vprog"></div></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Citation -->
@@ -573,6 +618,40 @@ orbit_camera(target=(1.4, 0, 0), degrees=<span class="p">90</span>,
   const lo=.60, hi=.68, pos=v=>(v-lo)/(hi-lo)*100;
   document.getElementById('abl').innerHTML = abl.map(([k,v],i)=>`<div class="abl-row ${i===abl.length-1?'ours':''}"><span class="lab">${k}</span>
     <div class="dot-track"><div class="stem" style="left:0;width:${pos(v)}%"></div><div class="dot" style="left:${pos(v)}%"></div></div><span class="v">${v.toFixed(2)}</span></div>`).join('');
+
+  /* video gallery */
+  const ex = [
+    {id:'boats', t:'Three boats on the ocean', p:`The video captures a lively scene on the ocean, with three boats in motion. The first boat, a large white yacht, is seen in the distance, sailing towards the horizon. The second and third boats are closer to the viewer, both moving at high speeds, leaving trails of white water behind them. The ocean is a deep blue, and the sky above is clear, suggesting a sunny day. The boats are the main focus of the video, with their movement and the water's reaction to their speed creating a dynamic and exciting scene. The overall style of the video is a dynamic aerial shot, capturing the movement and beauty of the ocean and the boats.`},
+    {id:'cars', t:'Three white cars at sunset', p:`The video shows a sequence of three identical white cars driving on a road. The first car is in the foreground, the second car is slightly behind and to the right, and the third car is in the background. The cars are moving from left to right across the frame. The road appears to be a city street with a dark grey surface. The background features a city skyline with buildings of various heights, and the sky is a gradient of orange and yellow, suggesting either sunrise or sunset. The style of the video is realistic with a focus on the cars and their movement.`},
+    {id:'woman', t:'A woman eating from a bowl', p:`In the video, a woman with long dark hair and glasses is seen enjoying a meal. She is wearing a black jacket and is seated in a room with a white wall. In the first frame, she is holding a bowl of food and appears to be in the process of eating. In the second frame, she is seen taking a bite of her food. In the third frame, she is seen holding a spoon and appears to be in the process of eating again. The video captures the woman's enjoyment of her meal and the casual atmosphere of the setting.`},
+    {id:'bird', t:'A small bird on a branch', p:`The video captures a small bird perched on a tree branch. The bird, with its brown and white feathers, yellow beak, and black and white head, is the main focus of the video. The bird is seen in three different positions on the branch, each time facing a different direction. The background of the video is filled with green foliage, providing a natural and serene setting for the bird. The style of the video is a close-up shot, allowing the viewer to appreciate the details of the bird and its surroundings. The video does not contain any text or additional objects. The bird's movements and the changing angles of the shot create a sense of dynamism and life in the video.`}
+  ];
+  const V = 'assets/videos/';
+  const thumbs = document.getElementById('thumbs'), vd = document.getElementById('vd'), vf = document.getElementById('vf');
+  const ptext = document.getElementById('ptext'), pmore = document.getElementById('pmore'), vplay = document.getElementById('vplay'), vprog = document.getElementById('vprog');
+  thumbs.innerHTML = ex.map((e,i)=>`<button role="tab" aria-selected="${i===0}" data-i="${i}"><img src="${V}${e.id}_final.jpg" alt="" loading="lazy"><span>${e.t}</span></button>`).join('');
+  let playing = true, inView = false;
+  function load(i){
+    const e = ex[i];
+    thumbs.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-selected', j===i));
+    ptext.textContent = e.p; ptext.classList.add('clamp'); pmore.textContent='Show full prompt'; pmore.setAttribute('aria-expanded','false');
+    vd.poster = V+e.id+'_draft.jpg'; vf.poster = V+e.id+'_final.jpg';
+    vd.src = V+e.id+'_draft.mp4'; vf.src = V+e.id+'_final.mp4';
+    vprog.style.width = '0';
+    if (playing && inView) restart();
+  }
+  function restart(){ vd.currentTime = 0; vf.currentTime = 0; vd.play().catch(()=>{}); vf.play().catch(()=>{}); }
+  function setPlaying(p){ playing = p; vplay.textContent = p ? '❚❚' : '▶'; vplay.setAttribute('aria-label', p ? 'Pause' : 'Play');
+    if (p) { if (vd.ended && vf.ended) restart(); else { vd.play().catch(()=>{}); vf.play().catch(()=>{}); } } else { vd.pause(); vf.pause(); } }
+  /* loop both together once the longer clip ends */
+  [vd,vf].forEach(v=>v.addEventListener('ended',()=>{ if (vd.ended && vf.ended && playing) restart(); }));
+  vf.addEventListener('timeupdate',()=>{ if (vf.duration) vprog.style.width = (vf.currentTime/vf.duration*100)+'%'; });
+  thumbs.addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ load(+b.dataset.i); if(!playing) setPlaying(true); } });
+  pmore.addEventListener('click',()=>{ const open = ptext.classList.toggle('clamp'); pmore.textContent = open ? 'Show full prompt' : 'Show less'; pmore.setAttribute('aria-expanded', String(!open)); });
+  vplay.addEventListener('click',()=>setPlaying(!playing));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) setPlaying(false);
+  new IntersectionObserver(es=>es.forEach(e=>{ inView = e.isIntersecting; if (inView && playing) { vd.play().catch(()=>{}); vf.play().catch(()=>{}); } else { vd.pause(); vf.pause(); } }),{threshold:.25}).observe(document.querySelector('.viewer'));
+  load(0);
 
   /* copy bibtex */
   document.getElementById('copy').addEventListener('click',e=>{
