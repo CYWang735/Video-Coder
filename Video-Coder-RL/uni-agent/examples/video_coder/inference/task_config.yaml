@@ -11,7 +11,7 @@
     sandbox_kwargs:
       pull_policy: never
       binds:
-      - /path/to/mini-swe-agent-tool-dir:/opt/mini-swe-agent:ro
+      - /path/to/mini-swe-agent-tool:/opt/mini-swe-agent:ro
       - /path/to/Video-Coder-RL/uni-agent/examples/video_coder:/opt/video-coder:ro
   agent:
     name: video_coder

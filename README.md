@@ -71,23 +71,14 @@ cd ../..
 conda create -n video-coder-rl python=3.12 -y
 conda activate video-coder-rl
 cd Video-Coder-RL/uni-agent
-pip install vllm==0.30.0 torch==2.13.0 transformers==5.17.0 "ray[default]==2.58.0" \
-    tensordict==0.14.2 accelerate==1.15.0 peft==0.21.1 qwen-vl-utils==0.0.14
-grep -vE '^(transformers|tensordict|TransferQueue)' verl/requirements.txt > /tmp/verl-req.txt
-pip install -r /tmp/verl-req.txt
-pip install --no-deps -e ./verl
-pip install --no-deps transferqueue==0.1.11 fla-core==0.5.2 flash-linear-attention==0.5.2
-pip install litellm httpx pandas pyarrow pyyaml jinja2 imageio-ffmpeg
+bash examples/video_coder/setup/install_env.sh
 ```
 
-The RL stage runs the Video-Coder Harness in an [Apptainer](https://apptainer.org) sandbox. Build the Blender image and the [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) tool directory once (needs internet; add `--fakeroot` to `apptainer build` if your cluster requires it):
+The RL stage runs the Video-Coder Harness in an [Apptainer](https://apptainer.org) sandbox. Build the Blender image and the [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) tool directory once (needs internet; prefix `FAKEROOT=1` if your cluster builds images with `--fakeroot`). The script also fills their paths into the training and inference task configs.
 
 ```bash
 cd Video-Coder-RL/uni-agent
-apptainer build bpy-agent.sif examples/video_coder/bpy-agent.def
-bash examples/mini_swe_agent/build_tool_apptainer.sh build $PWD/mini-swe-agent-tool.tar.gz
-bash examples/mini_swe_agent/build_tool_apptainer.sh extract $PWD/mini-swe-agent-tool.tar.gz $PWD/mini-swe-agent-tool
-bash examples/video_coder/install_harness.sh $PWD/mini-swe-agent-tool
+bash examples/video_coder/setup/build_sandbox.sh
 ```
 
 Download the training data from [🤗 Video-Coder/Train-Data](https://huggingface.co/datasets/Video-Coder/Train-Data) and unzip the ground-truth videos in place, so that the `gt_video` paths in `rl_data.json` resolve. Then put `sft_data.json` under `Video-Coder-SFT/ms-swift/data/`.
@@ -129,7 +120,7 @@ HOST=0.0.0.0 PORT=30011 bash serve.sh
 
 The draft video of each accepted rollout is turned into a video by MiniMax-H3, and a VLM judge (`qwen3.8-omni-flash` on DashScope) scores it against the ground-truth video. You may also change to other video generators or judges by revising the `video_reward` section of the task config and [`video_reward.py`](./Video-Coder-RL/uni-agent/uni_agent/tasks/video_coder/video_reward.py).
 
-Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls`, a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path, and the sandbox `image` (`bpy-agent.sif`) and `binds` (the tool directory and `examples/video_coder`) to your paths. Export your `DASHSCOPE_API_KEY` on every node before starting Ray. Training logs to [wandb](https://wandb.ai) by default: run `wandb login` first, or set `TRAINER_LOGGER="['console']"`. With several nodes, the data, `CKPTS_DIR` and `shared_dir` must be on storage that every node sees.
+Then, in the task config [`task_config_video_coder_video_reward_apptainer.yaml`](./Video-Coder-RL/uni-agent/examples/quickstart/training/task_config_video_coder_video_reward_apptainer.yaml), set the launched server URLs in `video_reward.ref2va.base_urls` and a `video_reward.ref2va.shared_dir` visible to the trainer and the servers at the same path (the sandbox paths were filled in by `build_sandbox.sh`). Export your `DASHSCOPE_API_KEY` on every node before starting Ray. Training logs to [wandb](https://wandb.ai) by default: run `wandb login` first, or set `TRAINER_LOGGER="['console']"`. With several nodes, the data, `CKPTS_DIR` and `shared_dir` must be on storage that every node sees.
 
 Finally, start the RL training based on the SFT model.
 
@@ -150,7 +141,7 @@ We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server.
 
 Prepare your own prompts in the same format as the training data: a JSON list of `{"id": ..., "prompt": ...}` (`gt_video` is not needed).
 
-First, generate the **Draft Video** for each prompt with the trained Video-Coder in the Video-Coder Harness, using the RL environment and sandbox from [Training](#-training) (set the sandbox `image` and `binds` in [`task_config.yaml`](./Video-Coder-RL/uni-agent/examples/video_coder/inference/task_config.yaml)).
+First, generate the **Draft Video** for each prompt with the trained Video-Coder in the Video-Coder Harness, using the RL environment and sandbox from [Training](#-training).
 
 ```bash
 cd Video-Coder-RL/uni-agent
