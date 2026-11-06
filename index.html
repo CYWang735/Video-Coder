@@ -69,27 +69,19 @@ figcaption b{color:var(--ink)}
 .nums span{font-size:14px;color:var(--muted)}
 @media (max-width:600px){.nums{grid-template-columns:1fr}}
 
-/* tables */
+/* tables (match the paper) */
 .tw{overflow-x:auto;margin:14px 0 4px}
-table.tex{border-collapse:collapse;margin:0 auto;font:15.5px/1.35 Castoro,"Times New Roman",serif;color:#111;min-width:560px}
-table.tex caption{caption-side:top;text-align:left;font:15.5px/1.45 Castoro,serif;color:#222;padding-bottom:10px}
-table.tex caption b{font-family:"Google Sans",sans-serif}
-table.tex th{font:600 14.5px "Google Sans",sans-serif;padding:7px 10px;text-align:center;color:#111}
-table.tex th:first-child,table.tex td:first-child{text-align:left;padding-left:2px;white-space:nowrap}
-table.tex td{padding:3px 10px;text-align:center;font-variant-numeric:tabular-nums}
-table.tex thead tr:first-child{border-top:1.6px solid #111}
-table.tex thead tr:last-child{border-bottom:1px solid #111}
+table.tex{border-collapse:collapse;margin:0 auto;font:15.5px/1.35 "Times New Roman",Times,Castoro,serif;color:#111;min-width:560px}
+table.tex caption{caption-side:top;text-align:center;font:15.5px/1.45 "Times New Roman",Times,serif;color:#111;padding-bottom:10px}
+table.tex th{font-weight:700;padding:8px 14px;text-align:center;vertical-align:middle;line-height:1.25}
+table.tex td{padding:5px 14px;text-align:center;font-variant-numeric:tabular-nums}
+table.tex thead tr{border-top:1.6px solid #111;border-bottom:1px solid #111}
 table.tex tbody:last-child tr:last-child{border-bottom:1.6px solid #111}
-table.tex tr.grp td{font-style:italic;padding:8px 2px 5px 14px;border-bottom:1px solid #111;border-top:1px solid #111}
-table.tex tr.sep td{border-top:1px solid #111}
-table.tex tr.ours td{font-weight:700}
-table.tex tr.ours{background:#fff4ec}
-table.tex td.r1{background:var(--h1);color:#fff}
-table.tex td.r2{background:var(--h2)}
-table.tex td.r3{background:var(--h3)}
-.up{color:#1f9d4a}
-.tleg{display:flex;justify-content:center;gap:14px;font-size:13px;color:var(--muted);margin:8px 0 0;flex-wrap:wrap}
-.tleg i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+table.tex tbody.gray td{background:#ececec}
+table.tex tbody.ours td{background:#eef7ef}
+table.tex tbody+tbody tr:first-child td{border-top:1px solid #111}
+table.tex td b{font-weight:700}
+table.tex.left td:first-child,table.tex.left th:first-child{text-align:left}
 
 /* example rows: prompt card + drag-to-compare stage */
 .ex{display:grid;grid-template-columns:200px 1fr;gap:10px;align-items:center}
@@ -178,56 +170,60 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
       <p class="j">Adding the draft video to <b>MiniMax-H3</b> gives the best score on every physics category of both benchmarks, and the same agent also helps <b>OmniWeaving</b> without retraining.</p>
     </div>
 
-    <div class="tw"><table class="tex heat" id="t1">
-      <caption><b>Table 1</b>&nbsp; PhyGenBench. Best per column shaded darkest.</caption>
-      <thead><tr><th>Method</th><th>Mechanics</th><th>Optics</th><th>Thermal</th><th>Material</th><th>Average</th></tr></thead>
-      <tbody>
-        <tr class="grp"><td colspan="6">Commercial</td></tr>
+    <div class="tw"><table class="tex" id="t1">
+      <caption>Table 1: Performance of different models on the PhyGenBench benchmark. Best performance is in <b>bold</b>.</caption>
+      <thead><tr><th>Method</th><th>Mechanics<br>(↑)</th><th>Optics (↑)</th><th>Thermal (↑)</th><th>Material (↑)</th><th>Average (↑)</th></tr></thead>
+      <tbody class="gray">
         <tr><td>Pika</td><td>0.35</td><td>0.56</td><td>0.43</td><td>0.39</td><td>0.44</td></tr>
         <tr><td>Gen-3</td><td>0.45</td><td>0.57</td><td>0.49</td><td>0.51</td><td>0.51</td></tr>
         <tr><td>Kling</td><td>0.45</td><td>0.58</td><td>0.50</td><td>0.40</td><td>0.49</td></tr>
-        <tr class="grp"><td colspan="6">Open models</td></tr>
+      </tbody>
+      <tbody>
         <tr><td>CogVideoX</td><td>0.39</td><td>0.55</td><td>0.40</td><td>0.42</td><td>0.45</td></tr>
         <tr><td>Open-Sora V1.2</td><td>0.43</td><td>0.50</td><td>0.44</td><td>0.37</td><td>0.44</td></tr>
         <tr><td>LaVie</td><td>0.30</td><td>0.44</td><td>0.38</td><td>0.32</td><td>0.36</td></tr>
         <tr><td>Vchitect-2.0</td><td>0.41</td><td>0.56</td><td>0.44</td><td>0.37</td><td>0.45</td></tr>
-        <tr><td>MiniMax-H3</td><td>0.61</td><td>0.73</td><td>0.52</td><td>0.55</td><td>0.61</td></tr>
+        <tr><td>Minimax-H3</td><td>0.61</td><td>0.73</td><td>0.52</td><td>0.55</td><td>0.61</td></tr>
         <tr><td>HunyuanVideo</td><td>0.33</td><td>0.39</td><td>0.26</td><td>0.30</td><td>0.33</td></tr>
         <tr><td>OmniWeaving</td><td>0.48</td><td>0.56</td><td>0.43</td><td>0.39</td><td>0.48</td></tr>
         <tr><td>Wan2.2-TI2V-5B</td><td>0.55</td><td>0.58</td><td>0.53</td><td>0.50</td><td>0.54</td></tr>
         <tr><td>Cosmos-Predict2.5</td><td>0.30</td><td>0.33</td><td>0.41</td><td>0.39</td><td>0.35</td></tr>
         <tr><td>LTX-Video-2B</td><td>0.51</td><td>0.58</td><td>0.48</td><td>0.45</td><td>0.51</td></tr>
         <tr><td>Video-CoCo</td><td>0.51</td><td>0.58</td><td>0.48</td><td>0.45</td><td>0.51</td></tr>
-        <tr class="grp"><td colspan="6">Ours</td></tr>
-        <tr class="ours"><td>Video-Coder-9B + OmniWeaving</td><td>0.52</td><td>0.58</td><td>0.52</td><td>0.44</td><td>0.51</td></tr>
-        <tr class="ours"><td>Video-Coder-9B + MiniMax-H3</td><td>0.68</td><td>0.79</td><td>0.60</td><td>0.61</td><td>0.67</td></tr>
+      </tbody>
+      <tbody class="ours">
+        <tr><td>Video-Coder-9B + OmniWeaving</td><td>0.52</td><td>0.58</td><td>0.52</td><td>0.44</td><td>0.51</td></tr>
+        <tr><td>Video-Coder-9B + Minimax-H3</td><td><b>0.68</b></td><td><b>0.79</b></td><td><b>0.60</b></td><td><b>0.61</b></td><td><b>0.67</b></td></tr>
       </tbody>
     </table></div>
 
-    <div class="tw" style="margin-top:28px"><table class="tex heat" id="t2">
-      <caption><b>Table 2</b>&nbsp; VBench-2.0, physical dimensions (%).</caption>
-      <thead><tr><th>Method</th><th>Mechanics</th><th>Thermotics</th><th>Material</th><th>Average</th></tr></thead>
+    <div class="tw" style="margin-top:32px"><table class="tex" id="t2">
+      <caption>Table 2: Performance of different models on the VBench-2.0 benchmark. Best performance is in <b>bold</b>.</caption>
+      <thead><tr><th>Method</th><th>Mechanics (↑)</th><th>Thermotics (↑)</th><th>Material (↑)</th><th>Average (↑)</th></tr></thead>
       <tbody>
-        <tr><td>Sora</td><td>62.22</td><td>43.36</td><td>64.94</td><td>56.84</td></tr>
-        <tr><td>Kling 1.6</td><td>65.55</td><td>59.46</td><td>68.00</td><td>64.34</td></tr>
-        <tr><td>HunyuanVideo</td><td>76.09</td><td>56.52</td><td>64.37</td><td>65.66</td></tr>
-        <tr><td>MiniMax-H3</td><td>67.59</td><td>47.22</td><td>48.94</td><td>54.58</td></tr>
-        <tr><td>CogVideoX-1.5</td><td>80.80</td><td>67.13</td><td>83.19</td><td>77.04</td></tr>
-        <tr class="ours sep"><td>Video-Coder-9B + MiniMax-H3</td><td>88.67</td><td>70.88</td><td>75.02</td><td>78.19</td></tr>
+        <tr><td>Sora</td><td>62.22%</td><td>43.36%</td><td>64.94%</td><td>56.84%</td></tr>
+        <tr><td>Kling 1.6</td><td>65.55%</td><td>59.46%</td><td>68.00%</td><td>64.34%</td></tr>
+        <tr><td>HunyuanVideo</td><td>76.09%</td><td>56.52%</td><td>64.37%</td><td>65.66%</td></tr>
+        <tr><td>Minimax-H3</td><td>67.59%</td><td>47.22%</td><td>48.94%</td><td>54.58%</td></tr>
+        <tr><td>CogVideoX-1.5</td><td>80.80%</td><td>67.13%</td><td><b>83.19</b>%</td><td>77.04%</td></tr>
+      </tbody>
+      <tbody class="ours">
+        <tr><td>Video-Coder-9B + Minimax-H3</td><td><b>88.67</b>%</td><td><b>70.88</b>%</td><td>75.02%</td><td><b>78.19</b>%</td></tr>
       </tbody>
     </table></div>
-    <div class="tleg"><span><i style="background:var(--h1)"></i>1st</span><span><i style="background:var(--h2)"></i>2nd</span><span><i style="background:var(--h3)"></i>3rd</span></div>
 
-    <div class="tw" style="margin-top:28px"><table class="tex" id="t3" style="min-width:420px">
-      <caption><b>Table 3</b>&nbsp; Ablation on PhyGenBench (average).</caption>
-      <thead><tr><th>Variant</th><th>Score</th><th>Δ</th></tr></thead>
+    <div class="tw" style="margin-top:32px"><table class="tex left" id="t3" style="min-width:440px">
+      <caption>Table 3: Ablation study of Video-Coder on PhyGenBench.</caption>
+      <thead><tr><th>Methods</th><th style="text-align:right">PhyGenBench</th></tr></thead>
       <tbody>
-        <tr><td>MiniMax-H3</td><td>0.61</td><td>–</td></tr>
-        <tr><td>+ Video-Coder-SFT</td><td>0.63</td><td class="up">+0.02</td></tr>
-        <tr><td>+ Video-Coder w/o annealing</td><td>0.65</td><td class="up">+0.04</td></tr>
-        <tr><td>+ Video-Coder w/o video reward</td><td>0.64</td><td class="up">+0.03</td></tr>
-        <tr><td>+ Video-Coder w/o execution reward</td><td>0.63</td><td class="up">+0.02</td></tr>
-        <tr class="ours sep"><td>+ Video-Coder</td><td>0.67</td><td class="up">+0.06</td></tr>
+        <tr><td>Minimax-H3</td><td style="text-align:right">0.61</td></tr>
+        <tr><td>+ Video-Coder-SFT</td><td style="text-align:right">0.63</td></tr>
+        <tr><td>+ Video-Coder-wo-annealing</td><td style="text-align:right">0.65</td></tr>
+        <tr><td>+ Video-Coder-wo-video reward</td><td style="text-align:right">0.64</td></tr>
+        <tr><td>+ Video-Coder-wo-execution reward</td><td style="text-align:right">0.63</td></tr>
+      </tbody>
+      <tbody class="ours">
+        <tr><td>+ Video-Coder</td><td style="text-align:right"><b>0.67</b></td></tr>
       </tbody>
     </table></div>
   </section>
@@ -293,16 +289,6 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !RM) { play(wd); play(wf); } else { wd.pause(); wf.pause(); } }), {threshold:.2}).observe(stage);
   });
 
-
-  /* heat-map shading: top 3 per numeric column (data rows only) */
-  document.querySelectorAll('table.heat').forEach(t => {
-    const rows = [...t.tBodies[0].rows].filter(r => !r.classList.contains('grp'));
-    const n = t.tHead.rows[0].cells.length;
-    for (let c = 1; c < n; c++) {
-      const vals = [...new Set(rows.map(r => parseFloat(r.cells[c].textContent)))].sort((a, b) => b - a);
-      rows.forEach(r => { const rank = vals.indexOf(parseFloat(r.cells[c].textContent)); if (rank > -1 && rank < 3) r.cells[c].classList.add('r' + (rank + 1)); });
-    }
-  });
 
   $('#copy').addEventListener('click', e => navigator.clipboard.writeText($('#bib').textContent).then(() => { e.target.textContent = 'Copied'; setTimeout(() => e.target.textContent = 'Copy', 1400); }));
 })();
