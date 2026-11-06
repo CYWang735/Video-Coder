@@ -55,15 +55,11 @@ figcaption{font-size:16px;line-height:1.55;color:var(--text);text-align:center;m
 figcaption b{color:var(--ink)}
 .panel{background:#f5f5f5;border-radius:10px;padding:clamp(10px,2vw,18px)}
 
-/* teaser video strip */
-.teaser{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:34px}
-.teaser .cell{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:864/480;background:#eee}
-.teaser video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s}
-.teaser .fin{opacity:0}
-.teaser .cell.show .fin{opacity:1}
-.teaser .tag{position:absolute;left:6px;bottom:6px;font:600 11px "Google Sans",sans-serif;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:4px;transition:background .3s}
-.teaser .cell.show .tag{background:var(--or)}
-@media (max-width:720px){.teaser{grid-template-columns:repeat(2,1fr)}}
+/* institution logos */
+.logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:18px 44px;margin:34px auto 0;max-width:900px}
+.logos img{height:58px;width:auto;object-fit:contain}
+.logos img.wide{height:40px}
+@media (max-width:600px){.logos{gap:14px 26px}.logos img{height:40px}.logos img.wide{height:28px}}
 
 /* key numbers */
 .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 4px;text-align:center}
@@ -139,7 +135,13 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     <a href="https://huggingface.co/datasets/Video-Coder/Train-Data">🤗 Dataset</a>
   </div>
 
-  <div class="teaser" id="teaser"></div>
+  <div class="logos" aria-label="Institutions">
+    <img src="assets/logos/ucf.png" alt="University of Central Florida">
+    <img src="assets/logos/wuerzburg.png" alt="University of Würzburg">
+    <img class="wide" src="assets/logos/microsoft.png" alt="Microsoft Research">
+    <img src="assets/logos/unc.png" alt="UNC-Chapel Hill">
+    <img src="assets/logos/wisconsin.png" alt="University of Wisconsin–Madison">
+  </div>
 </header>
 
 <main class="c">
@@ -270,18 +272,6 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   const order = ['bird','cars','woman','boats'].map(id => ex.find(e => e.id === id));
   const short = {bird:'Bird', cars:'Cars', woman:'Dining', boats:'Boats'};
 
-  /* teaser: each tile shows the clay draft, then dissolves into the final video */
-  const T = $('#teaser');
-  T.innerHTML = order.map(e => `<div class="cell"><video class="dr" muted playsinline loop preload="metadata" poster="${V}${e.id}_draft.jpg" src="${V}${e.id}_draft.mp4"></video><video class="fin" muted playsinline loop preload="metadata" poster="${V}${e.id}_final.jpg" src="${V}${e.id}_final.mp4"></video><span class="tag">${short[e.id]} · draft</span></div>`).join('');
-  const cells = [...T.children];
-  let k = 0;
-  function cycle(){
-    cells.forEach((c, i) => { const on = ((k + i) % 2) === 1; c.classList.toggle('show', on); c.querySelector('.tag').textContent = short[order[i].id] + (on ? ' · final' : ' · draft'); });
-    k++;
-  }
-  cycle(); if (!RM) setInterval(cycle, 2600);
-  cells.forEach(c => c.addEventListener('mouseenter', () => { c.classList.add('show'); }));
-
   /* example rows: each a drag-to-compare stage */
   $('#rows').innerHTML = order.map(e => `<div class="ex"><div class="p">${e.t}.</div>
     <div class="stage" style="--x:50%">
@@ -303,9 +293,6 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !RM) { play(wd); play(wf); } else { wd.pause(); wf.pause(); } }), {threshold:.2}).observe(stage);
   });
 
-  /* play teaser videos only while visible */
-  const io = new IntersectionObserver(es => es.forEach(e => e.target.querySelectorAll('video').forEach(v => e.isIntersecting && !RM ? play(v) : v.pause())), {threshold:.1});
-  io.observe(T);
 
   /* heat-map shading: top 3 per numeric column (data rows only) */
   document.querySelectorAll('table.heat').forEach(t => {
