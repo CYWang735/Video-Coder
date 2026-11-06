@@ -95,14 +95,28 @@ table.tex td.r3{background:var(--h3)}
 .tleg{display:flex;justify-content:center;gap:14px;font-size:13px;color:var(--muted);margin:8px 0 0;flex-wrap:wrap}
 .tleg i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
 
-/* example rows */
-.ex{display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;align-items:center}
-.ex+.ex{margin-top:10px}
-.ex .p{font-size:14.5px;line-height:1.45;color:var(--text);background:#fff;border-radius:8px;padding:10px 12px;border-left:3px solid var(--or)}
-.ex video{width:100%;aspect-ratio:864/480;object-fit:cover;border-radius:6px;background:#ddd}
-.exh{display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;font:600 15px "Google Sans",sans-serif;color:var(--ink);text-align:center;margin-bottom:8px}
-.exh span:first-child{text-align:left}
-@media (max-width:720px){.ex,.exh{grid-template-columns:1fr 1fr}.ex .p,.exh span:first-child{grid-column:1/-1}}
+/* data case: wipe compare */
+.picks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px}
+.picks button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:999px;background:#fff;border:1px solid var(--line);font:15px "Google Sans","Noto Sans",sans-serif;color:var(--ink);transition:all .15s}
+.picks button img{width:44px;height:26px;object-fit:cover;border-radius:999px}
+.picks button:hover{border-color:#b5b5b5}
+.picks button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.prompt{max-width:900px;margin:0 auto 14px;font-size:15px;line-height:1.55;color:var(--text);text-align:center}
+.prompt b{color:var(--or);font-weight:600;margin-right:6px}
+.prompt button{all:unset;cursor:pointer;color:var(--link);margin-left:6px}
+.stage{position:relative;aspect-ratio:864/480;border-radius:14px;overflow:hidden;background:#222;cursor:ew-resize;user-select:none;-webkit-user-select:none;touch-action:pan-y;box-shadow:0 18px 40px -22px rgba(0,0,0,.6)}
+.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage .top{clip-path:inset(0 0 0 var(--x,50%))}
+.handle{position:absolute;top:0;bottom:0;left:var(--x,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 12px rgba(255,255,255,.6);pointer-events:none}
+.handle::after{content:"";position:absolute;top:50%;left:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(20,20,22,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,.9);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l-6 6 6 6M15 6l6 6-6 6'/%3E%3C/svg%3E");background-size:20px;background-repeat:no-repeat;background-position:center}
+.lbl{position:absolute;top:14px;z-index:2;display:flex;align-items:center;gap:8px;font:600 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:#fff;padding:7px 13px;border-radius:999px;background:rgba(20,20,22,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);pointer-events:none}
+.lbl i{width:8px;height:8px;border-radius:50%}
+.lbl em{font-style:normal}
+.lbl.l{left:14px}.lbl.l i{background:#bbb}
+.lbl.r{right:14px}.lbl.r i{background:var(--or)}
+.shint{text-align:center;font-size:13.5px;color:var(--muted);margin-top:8px}
+@media (max-width:560px){.lbl{top:8px;font-size:10px;padding:4px 8px}.lbl.l{left:8px}.lbl.r{right:8px}.handle::after{width:36px;height:36px;margin:-18px 0 0 -18px}.picks button img{display:none}.lbl em{display:none}.picks button{padding:5px 12px}}
 
 /* bibtex */
 pre.bib{background:#f5f5f5;border-radius:6px;padding:18px 20px;font:13.5px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#363636;overflow-x:auto;margin:0}
@@ -223,11 +237,17 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
 
   <section id="cases">
     <h2>Data Case</h2>
-    <div class="panel">
-      <div class="exh"><span>Prompt</span><span>Draft video (Video-Coder)</span><span>Generated video (MiniMax-H3)</span></div>
-      <div id="rows"></div>
+    <div class="picks" role="tablist" id="picks"></div>
+    <p class="prompt"><b>Prompt</b><span id="ptext"></span><button id="pmore">full prompt</button></p>
+    <div class="stage" id="stage" style="--x:50%">
+      <video class="bot" id="wd" muted playsinline preload="auto"></video>
+      <video class="top" id="wf" muted playsinline preload="auto"></video>
+      <div class="handle"></div>
+      <span class="lbl l"><i></i>DRAFT<em> · BLENDER CODE</em></span>
+      <span class="lbl r"><i></i>FINAL<em> · VIDEO MODEL</em></span>
     </div>
-    <figcaption><b>Fig. 3.</b> Code fixes the count, layout and motion in the draft; the generator adds appearance.</figcaption>
+    <p class="shint">← drag to compare →</p>
+    <figcaption><b>Fig. 3.</b> Left: the draft rendered from Video-Coder's Blender code. Right: the final video from MiniMax-H3.</figcaption>
   </section>
 
   <section id="bibtex">
@@ -273,12 +293,32 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   cycle(); if (!RM) setInterval(cycle, 2600);
   cells.forEach(c => c.addEventListener('mouseenter', () => { c.classList.add('show'); }));
 
-  /* example rows */
-  $('#rows').innerHTML = order.map(e => `<div class="ex"><div class="p">${e.t}.</div><video muted playsinline loop preload="metadata" poster="${V}${e.id}_draft.jpg" src="${V}${e.id}_draft.mp4"></video><video muted playsinline loop preload="metadata" poster="${V}${e.id}_final.jpg" src="${V}${e.id}_final.mp4"></video></div>`).join('');
+  /* data case: wipe compare */
+  const stage = $('#stage'), wd = $('#wd'), wf = $('#wf'), picks = $('#picks'), ptext = $('#ptext'), pmore = $('#pmore');
+  picks.innerHTML = order.map((e, i) => `<button role="tab" aria-selected="${i===0}" data-i="${i}"><img src="${V}${e.id}_final.jpg" alt="">${short[e.id]}</button>`).join('');
+  let cur = 0, full = false, inView = false, user = false, dragging = false;
+  const setPrompt = () => { ptext.textContent = full ? order[cur].p : order[cur].t + '.'; pmore.textContent = full ? 'less' : 'full prompt'; };
+  pmore.addEventListener('click', () => { full = !full; setPrompt(); });
+  function load(i){ cur = i; full = false; setPrompt(); const e = order[i];
+    picks.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-selected', j === i));
+    wd.poster = V+e.id+'_draft.jpg'; wf.poster = V+e.id+'_final.jpg'; wd.src = V+e.id+'_draft.mp4'; wf.src = V+e.id+'_final.mp4';
+    if (inView && !RM) { play(wd); play(wf); } }
+  picks.addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) load(+b.dataset.i); });
+  /* restart both together once the longer clip ends */
+  [wd, wf].forEach(v => v.addEventListener('ended', () => { if (wd.ended && wf.ended) { wd.currentTime = 0; wf.currentTime = 0; play(wd); play(wf); } }));
+  const setX = x => stage.style.setProperty('--x', Math.max(0, Math.min(100, x)) + '%');
+  const fromEvt = e => { const r = stage.getBoundingClientRect(); setX((e.clientX - r.left) / r.width * 100); };
+  stage.addEventListener('pointerdown', e => { dragging = true; user = true; stage.setPointerCapture(e.pointerId); fromEvt(e); });
+  stage.addEventListener('pointermove', e => { if (dragging || (e.pointerType === 'mouse' && user)) fromEvt(e); });
+  stage.addEventListener('pointerup', () => dragging = false);
+  stage.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') user = true; });
+  if (!RM) { const t0 = performance.now(); const sweep = t => { if (!user) { setX(50 + 30 * Math.sin((t - t0) / 1500)); requestAnimationFrame(sweep); } }; requestAnimationFrame(sweep); }
+  new IntersectionObserver(es => es.forEach(e => { inView = e.isIntersecting; if (inView && !RM) { play(wd); play(wf); } else { wd.pause(); wf.pause(); } }), {threshold:.2}).observe(stage);
+  load(0);
 
-  /* play videos only while visible */
+  /* play teaser videos only while visible */
   const io = new IntersectionObserver(es => es.forEach(e => e.target.querySelectorAll('video').forEach(v => e.isIntersecting && !RM ? play(v) : v.pause())), {threshold:.1});
-  [T, ...document.querySelectorAll('.ex')].forEach(el => io.observe(el));
+  io.observe(T);
 
   /* heat-map shading: top 3 per numeric column (data rows only) */
   document.querySelectorAll('table.heat').forEach(t => {
