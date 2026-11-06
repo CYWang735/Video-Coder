@@ -96,14 +96,14 @@ table.tex td.r3{background:var(--h3)}
 .tleg i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
 
 /* data case: wipe compare */
-.picks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:14px}
-.picks button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:999px;background:#fff;border:1px solid var(--line);font:15px "Google Sans","Noto Sans",sans-serif;color:var(--ink);transition:all .15s}
-.picks button img{width:44px;height:26px;object-fit:cover;border-radius:999px}
-.picks button:hover{border-color:#b5b5b5}
-.picks button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
-.prompt{max-width:900px;margin:0 auto 14px;font-size:15px;line-height:1.55;color:var(--text);text-align:center}
-.prompt b{color:var(--or);font-weight:600;margin-right:6px}
-.prompt button{all:unset;cursor:pointer;color:var(--link);margin-left:6px}
+.rows{display:grid;gap:18px}
+.row{display:grid;grid-template-columns:210px 1fr;gap:16px;align-items:center}
+.row .p{font-size:15px;line-height:1.5;color:var(--text);border-left:3px solid var(--or);padding:4px 0 4px 12px}
+.row .p b{display:block;font:600 16px "Google Sans","Noto Sans",sans-serif;color:var(--ink);margin-bottom:2px}
+.row .p button{all:unset;cursor:pointer;color:var(--link);font-size:13.5px}
+.row .p .full{display:none;margin-top:6px;font-size:13.5px;color:var(--muted)}
+.row .p.open .full{display:block}
+@media (max-width:720px){.row{grid-template-columns:1fr;gap:8px}}
 .stage{position:relative;aspect-ratio:864/480;border-radius:14px;overflow:hidden;background:#222;cursor:ew-resize;user-select:none;-webkit-user-select:none;touch-action:pan-y;box-shadow:0 18px 40px -22px rgba(0,0,0,.6)}
 .stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .stage .top{clip-path:inset(0 0 0 var(--x,50%))}
@@ -237,15 +237,7 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
 
   <section id="cases">
     <h2>Data Case</h2>
-    <div class="picks" role="tablist" id="picks"></div>
-    <p class="prompt"><b>Prompt</b><span id="ptext"></span><button id="pmore">full prompt</button></p>
-    <div class="stage" id="stage" style="--x:50%">
-      <video class="bot" id="wd" muted playsinline preload="auto"></video>
-      <video class="top" id="wf" muted playsinline preload="auto"></video>
-      <div class="handle"></div>
-      <span class="lbl l"><i></i>DRAFT<em> · BLENDER CODE</em></span>
-      <span class="lbl r"><i></i>FINAL<em> · VIDEO MODEL</em></span>
-    </div>
+    <div class="rows" id="rows"></div>
     <p class="shint">← drag to compare →</p>
     <figcaption><b>Fig. 3.</b> Left: the draft rendered from Video-Coder's Blender code. Right: the final video from MiniMax-H3.</figcaption>
   </section>
@@ -293,28 +285,31 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   cycle(); if (!RM) setInterval(cycle, 2600);
   cells.forEach(c => c.addEventListener('mouseenter', () => { c.classList.add('show'); }));
 
-  /* data case: wipe compare */
-  const stage = $('#stage'), wd = $('#wd'), wf = $('#wf'), picks = $('#picks'), ptext = $('#ptext'), pmore = $('#pmore');
-  picks.innerHTML = order.map((e, i) => `<button role="tab" aria-selected="${i===0}" data-i="${i}"><img src="${V}${e.id}_final.jpg" alt="">${short[e.id]}</button>`).join('');
-  let cur = 0, full = false, inView = false, user = false, dragging = false;
-  const setPrompt = () => { ptext.textContent = full ? order[cur].p : order[cur].t + '.'; pmore.textContent = full ? 'less' : 'full prompt'; };
-  pmore.addEventListener('click', () => { full = !full; setPrompt(); });
-  function load(i){ cur = i; full = false; setPrompt(); const e = order[i];
-    picks.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-selected', j === i));
-    wd.poster = V+e.id+'_draft.jpg'; wf.poster = V+e.id+'_final.jpg'; wd.src = V+e.id+'_draft.mp4'; wf.src = V+e.id+'_final.mp4';
-    if (inView && !RM) { play(wd); play(wf); } }
-  picks.addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) load(+b.dataset.i); });
-  /* restart both together once the longer clip ends */
-  [wd, wf].forEach(v => v.addEventListener('ended', () => { if (wd.ended && wf.ended) { wd.currentTime = 0; wf.currentTime = 0; play(wd); play(wf); } }));
-  const setX = x => stage.style.setProperty('--x', Math.max(0, Math.min(100, x)) + '%');
-  const fromEvt = e => { const r = stage.getBoundingClientRect(); setX((e.clientX - r.left) / r.width * 100); };
-  stage.addEventListener('pointerdown', e => { dragging = true; user = true; stage.setPointerCapture(e.pointerId); fromEvt(e); });
-  stage.addEventListener('pointermove', e => { if (dragging || (e.pointerType === 'mouse' && user)) fromEvt(e); });
-  stage.addEventListener('pointerup', () => dragging = false);
-  stage.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') user = true; });
-  if (!RM) { const t0 = performance.now(); const sweep = t => { if (!user) { setX(50 + 30 * Math.sin((t - t0) / 1500)); requestAnimationFrame(sweep); } }; requestAnimationFrame(sweep); }
-  new IntersectionObserver(es => es.forEach(e => { inView = e.isIntersecting; if (inView && !RM) { play(wd); play(wf); } else { wd.pause(); wf.pause(); } }), {threshold:.2}).observe(stage);
-  load(0);
+  /* data case: one drag-to-compare stage per example */
+  const rows = $('#rows');
+  rows.innerHTML = order.map(e => `<div class="row">
+      <div class="p"><b>${short[e.id]}</b>${e.t}. <button>full prompt</button><div class="full">${e.p}</div></div>
+      <div class="stage" style="--x:50%">
+        <video class="bot" muted playsinline preload="metadata" poster="${V}${e.id}_draft.jpg" src="${V}${e.id}_draft.mp4"></video>
+        <video class="top" muted playsinline preload="metadata" poster="${V}${e.id}_final.jpg" src="${V}${e.id}_final.mp4"></video>
+        <div class="handle"></div>
+        <span class="lbl l"><i></i>DRAFT<em> · BLENDER CODE</em></span>
+        <span class="lbl r"><i></i>FINAL<em> · VIDEO MODEL</em></span>
+      </div></div>`).join('');
+  rows.querySelectorAll('.p button').forEach(b => b.addEventListener('click', () => { const p = b.parentElement; p.classList.toggle('open'); b.textContent = p.classList.contains('open') ? 'less' : 'full prompt'; }));
+  rows.querySelectorAll('.stage').forEach((stage, n) => {
+    const [wd, wf] = stage.querySelectorAll('video');
+    let user = false, dragging = false;
+    [wd, wf].forEach(v => v.addEventListener('ended', () => { if (wd.ended && wf.ended) { wd.currentTime = 0; wf.currentTime = 0; play(wd); play(wf); } }));
+    const setX = x => stage.style.setProperty('--x', Math.max(0, Math.min(100, x)) + '%');
+    const fromEvt = e => { const r = stage.getBoundingClientRect(); setX((e.clientX - r.left) / r.width * 100); };
+    stage.addEventListener('pointerdown', e => { dragging = true; user = true; stage.setPointerCapture(e.pointerId); fromEvt(e); });
+    stage.addEventListener('pointermove', e => { if (dragging || (e.pointerType === 'mouse' && user)) fromEvt(e); });
+    stage.addEventListener('pointerup', () => dragging = false);
+    stage.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') user = true; });
+    if (!RM) { const t0 = performance.now(); const sweep = t => { if (!user) { setX(50 + 30 * Math.sin((t - t0) / 1500 + n * 1.3)); requestAnimationFrame(sweep); } }; requestAnimationFrame(sweep); }
+    new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !RM) { play(wd); play(wf); } else { wd.pause(); wf.pause(); } }), {threshold:.2}).observe(stage);
+  });
 
   /* play teaser videos only while visible */
   const io = new IntersectionObserver(es => es.forEach(e => e.target.querySelectorAll('video').forEach(v => e.isIntersecting && !RM ? play(v) : v.pause())), {threshold:.1});
