@@ -57,10 +57,12 @@ figcaption b{color:var(--ink)}
 .panel{background:#f5f5f5;border-radius:10px;padding:clamp(10px,2vw,18px)}
 
 /* institution logos */
-.logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:24px 56px;margin:44px auto 72px;max-width:1000px}
-.logos img{height:88px;width:auto;object-fit:contain}
-.logos img.wide{height:60px}
-@media (max-width:600px){.logos{gap:18px 30px;margin:32px auto 44px}.logos img{height:54px}.logos img.wide{height:38px}}
+.logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:24px 40px;margin:44px auto 72px;max-width:1040px}
+.logos img{height:82px;width:auto;object-fit:contain}
+.logos img.ms{height:46px}
+.logos img.unc{height:66px}
+.logos img.uw{height:58px}
+@media (max-width:600px){.logos{gap:18px 26px;margin:32px auto 44px}.logos img{height:52px}.logos img.ms{height:32px}.logos img.unc{height:44px}.logos img.uw{height:40px}}
 
 /* key numbers */
 .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 4px;text-align:center}
@@ -131,9 +133,10 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   <div class="logos" aria-label="Institutions">
     <img src="assets/logos/ucf.png" alt="University of Central Florida">
     <img src="assets/logos/wuerzburg.png" alt="University of Würzburg">
-    <img class="wide" src="assets/logos/microsoft.png" alt="Microsoft Research">
-    <img src="assets/logos/unc.png" alt="UNC-Chapel Hill">
-    <img src="assets/logos/wisconsin.png" alt="University of Wisconsin–Madison">
+    <img class="ms" src="assets/logos/microsoft.png" alt="Microsoft Research">
+    <img src="assets/logos/tsinghua.png" alt="Tsinghua University">
+    <img class="unc" src="assets/logos/unc.png" alt="UNC-Chapel Hill">
+    <img class="uw" src="assets/logos/wisconsin.png" alt="University of Wisconsin–Madison">
   </div>
 </header>
 
@@ -145,7 +148,7 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
       <div class="nums">
         <div><b class="o">+23.6</b><span>VBench-2.0 over MiniMax-H3</span></div>
         <div><b class="o">+0.06</b><span>PhyGenBench over MiniMax-H3</span></div>
-        <div><b>10k + 4k</b><span>open SFT / RL samples</span></div>
+        <div><b>6k + 2k</b><span>open SFT / RL samples</span></div>
       </div>
     </div>
     <figure>
@@ -162,7 +165,7 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     <figure class="panel">
       <img src="assets/pipeline.png" alt="Four-stage data pipeline" loading="lazy">
     </figure>
-    <figcaption><b>Fig. 2.</b> Data pipeline: prompt construction, agentic trajectory generation, ground-truth video synthesis, and filtering, yielding <b>Video-Coder-SFT-10k</b> and <b>Video-Coder-RL-4k</b>.</figcaption>
+    <figcaption><b>Fig. 2.</b> Data pipeline: prompt construction, agentic trajectory generation, ground-truth video synthesis, and filtering, yielding <b>Video-Coder-SFT-6k</b> and <b>Video-Coder-RL-2k</b>.</figcaption>
   </section>
 
   <section id="results">
