@@ -115,10 +115,6 @@ table.tex.left td:first-child,table.tex.left th:first-child{text-align:left}
 .lbl.r{right:10px}.lbl.r i{background:var(--or)}
 @media (max-width:720px){.ex{grid-template-columns:1fr}.exh{grid-template-columns:1fr 1fr}.exh span:first-child{display:none}.lbl{top:8px;font-size:10px;padding:4px 8px}.lbl.l{left:8px}.lbl.r{right:8px}}
 
-/* bibtex */
-pre.bib{background:#f5f5f5;border-radius:6px;padding:18px 20px;font:13.5px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#363636;overflow-x:auto;margin:0}
-.bibw{position:relative}
-.copy{position:absolute;top:10px;right:10px;border:0;background:var(--ink);color:#fff;border-radius:999px;font:13px "Noto Sans",sans-serif;padding:5px 12px;cursor:pointer}
 footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:center;font-size:14px;color:var(--muted)}
 </style>
 </head>
@@ -256,18 +252,6 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     <figcaption><b>Figure 3:</b> Drag each video to compare the draft from Video-Coder's Blender code with the final video from MiniMax-H3.</figcaption>
   </section>
 
-  <section id="bibtex">
-    <h2 style="text-align:left">BibTeX</h2>
-    <div class="bibw"><button class="copy" id="copy">Copy</button>
-<pre class="bib" id="bib">@article{wang2026videocoder,
-  title   = {Video-Coder: Reinforcing Agentic Coding for Video Generation},
-  author  = {Wang, Chaoyang and Gao, Sicheng and Hu, Junan and Li, Kunyang and
-             Chen, Dongyang and Zhou, Yiyang and Yao, Huaxiu and Lee, Yong Jae and
-             Timofte, Radu and Shang, Yuzhang},
-  journal = {arXiv preprint},
-  year    = {2026}
-}</pre></div>
-  </section>
 </main>
 
 <footer>Website template adapted from <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.</footer>
@@ -309,7 +293,6 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   });
 
 
-  $('#copy').addEventListener('click', e => navigator.clipboard.writeText($('#bib').textContent).then(() => { e.target.textContent = 'Copied'; setTimeout(() => e.target.textContent = 'Copy', 1400); }));
 })();
 </script>
 </body>
