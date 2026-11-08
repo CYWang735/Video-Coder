@@ -160,7 +160,7 @@ bash setup_env.sh && bash download_model.sh     # once
 bash run_batch.sh /path/to/output/h3_manifest.jsonl /path/to/output/final
 ```
 
-The final videos are written to `/path/to/output/final/<id>.mp4`. See the [MiniMax-H3 guide](./Minimax-H3-server/README.md) for resolution, duration, seeds and multiple servers.
+The final videos are written to `/path/to/output/final/<id>.mp4`.
 
 ## Acknowledgements
 
