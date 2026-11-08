@@ -159,16 +159,16 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
   <section id="intro">
     <h2>Introduction</h2>
     <div class="narrow">
-      <p class="j"><span class="hl">Video-Coder</span> is a coding agent that writes and runs Blender code to build a <b>draft video</b>: a gray-clay 3D scene that fixes object count, layout, motion and camera. A video generator then turns the draft into the final video.</p>
+      <p class="j"><span class="hl">Video-Coder</span> is a coding agent that writes and runs Blender code to build a <b>draft video</b>. A video generator then turns the draft into the final video.</p>
       <div class="nums">
-        <div><b class="o">+23.6</b><span>VBench-2.0 over MiniMax-H3</span></div>
-        <div><b class="o">+0.06</b><span>PhyGenBench over MiniMax-H3</span></div>
+        <div><b class="o">+24</b><span>VBench-2.0 over MiniMax-H3</span></div>
+        <div><b class="o">+6</b><span>PhyGenBench over MiniMax-H3</span></div>
         <div><b>6k + 2k</b><span>open SFT / RL samples</span></div>
       </div>
     </div>
     <figure>
       <img src="assets/teaser.png" alt="Direct video generation vs. Video-Coder" loading="lazy">
-      <figcaption><b>Fig. 1.</b> Direct generation gets the cube count and motion wrong. <span class="hl">Video-Coder</span> builds the scene in code first, and the draft guides the generator.</figcaption>
+      <figcaption><b>Figure 1:</b> Overview of our proposed Video-Coder. Unlike direct video generation, Video-Coder writes and executes code to build a 3D scene and renders a draft video, which guides the downstream video generator with explicit structure and motion signals.</figcaption>
     </figure>
   </section>
 
@@ -180,7 +180,7 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     <figure class="panel">
       <img src="assets/pipeline.png" alt="Four-stage data pipeline" loading="lazy">
     </figure>
-    <figcaption><b>Fig. 2.</b> Data pipeline: prompt construction, agentic trajectory generation, ground-truth video synthesis, and filtering, yielding <b>Video-Coder-SFT-6k</b> and <b>Video-Coder-RL-2k</b>.</figcaption>
+    <figcaption><b>Figure 2:</b> Overview of our data construction pipeline. It consists of four stages: text prompt construction, agentic trajectory generation, ground-truth video synthesis, and data cleaning and filtering, yielding two datasets: Video-Coder-SFT-6k and Video-Coder-RL-2k.</figcaption>
   </section>
 
   <section id="results">
@@ -253,7 +253,7 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
       <div class="exh"><span>Prompt</span><span>← Draft video (Video-Coder)</span><span>Generated video (MiniMax-H3) →</span></div>
       <div id="rows"></div>
     </div>
-    <figcaption><b>Fig. 3.</b> Drag each video to compare the draft from Video-Coder's Blender code with the final video from MiniMax-H3.</figcaption>
+    <figcaption><b>Figure 3:</b> Drag each video to compare the draft from Video-Coder's Blender code with the final video from MiniMax-H3.</figcaption>
   </section>
 
   <section id="bibtex">
