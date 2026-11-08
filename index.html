@@ -57,12 +57,22 @@ figcaption b{color:var(--ink)}
 .panel{background:#f5f5f5;border-radius:10px;padding:clamp(10px,2vw,18px)}
 
 /* institution logos */
-.logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:24px 40px;margin:44px auto 72px;max-width:1040px}
+.logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:24px 40px;margin:44px auto 0;max-width:1040px}
 .logos img{height:82px;width:auto;object-fit:contain}
 .logos img.ms{height:46px}
 .logos img.unc{height:66px}
 .logos img.uw{height:58px}
 @media (max-width:600px){.logos{gap:18px 26px;margin:32px auto 44px}.logos img{height:52px}.logos img.ms{height:32px}.logos img.unc{height:44px}.logos img.uw{height:40px}}
+
+/* claim line */
+.claim{margin:48px auto 76px;text-align:center;max-width:880px}
+.claim p{margin:0;font:500 clamp(21px,2.6vw,29px)/1.4 "Google Sans","Noto Sans",sans-serif;color:var(--ink);letter-spacing:-.005em}
+.claim .first{display:inline-block;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--or),var(--rd));padding:1px 12px 3px;border-radius:8px;transform:rotate(-1.5deg);margin-right:4px;box-shadow:0 6px 16px -8px rgba(217,74,58,.7)}
+.claim mark{background:linear-gradient(transparent 58%,rgba(240,112,42,.28) 58%);color:inherit;padding:0 2px;font-weight:700}
+.claim .rule{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:18px;color:#c9c9c9}
+.claim .rule::before,.claim .rule::after{content:"";width:64px;height:1px;background:currentColor}
+.claim .rule i{width:6px;height:6px;border-radius:50%;background:var(--or)}
+@media (max-width:600px){.claim{margin:32px auto 48px}.claim .first{padding:0 9px 2px}}
 
 /* key numbers */
 .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 4px;text-align:center}
@@ -137,6 +147,10 @@ footer{margin-top:56px;padding:28px 20px 40px;background:#fafafa;text-align:cent
     <img src="assets/logos/tsinghua.png" alt="Tsinghua University">
     <img class="unc" src="assets/logos/unc.png" alt="UNC-Chapel Hill">
     <img class="uw" src="assets/logos/wisconsin.png" alt="University of Wisconsin–Madison">
+  </div>
+  <div class="claim">
+    <p><span class="first">The first</span> work to train a <mark>code&#8209;driven video generation agent</mark>.</p>
+    <div class="rule" aria-hidden="true"><i></i></div>
   </div>
 </header>
 
