@@ -3,7 +3,7 @@
 # + 0.5 * video reward (MiniMax-H3 Ref2VA + VLM judge against the sample's GT video).
 #
 # Run from the repo root on the GPU node, with a Ray head already running there:
-#   cd ~/wangcy/uni-agent-v2 && source proxy.sh
+#   cd Video-Coder-RL/uni-agent
 #   ray status || { unset ROCR_VISIBLE_DEVICES HIP_VISIBLE_DEVICES; NUM_GPUS=2 restart_ray; }
 #   MODEL_PATH=/path/to/policy bash examples/video_coder/train_video_coder_rl.sh
 #

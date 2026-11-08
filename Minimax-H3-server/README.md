@@ -214,5 +214,4 @@ curl -s -o /dev/null -w '%{http_code}\n' http://<host>:30011/health   # 200 = �
 | `tools/memfd_compat.py` | 环境兼容补丁,由 `setup_env.sh` 自动安装 |
 | `tools/build_manifest_from_tasks.py` | 把 Video-Coder 任务目录(`<task>/task.json` + `<task>/final_run/output.mp4`)整理成数据包 |
 | `examples/demo/` | 示例数据包 |
-| `cluster/helma/` | 原作者在 NHR Helma 集群上的配置,其它机器用不到 |
 | `env/`、`models/`、`data/`、`.cache/`、`.server/`、`logs/`、`outputs/` | 运行时生成;`.server/` 里是服务端的视频副本,可随时删除 |

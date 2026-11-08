@@ -1,6 +1,6 @@
 """Turn a Video-Coder task file (.jsonl, or .json with a list; a prompt per record) into a uni-agent parquet.
 
-    python -m uni_agent.tasks.video_coder.preprocess --tasks ~/wangcy/Video-Coder-sftdata/data/example_tasks.jsonl \
+    python -m uni_agent.tasks.video_coder.preprocess --tasks /path/to/tasks.jsonl \
         --out ~/data/uni_agent/video_coder_example.parquet
 """
 

@@ -18,13 +18,10 @@ env_vars:
   # First pulls of multi-GB SWE images happen inside sandbox start(); pre-pull, and
   # give cold starts room anyway.
   SANDBOX_STARTUP_TIMEOUT: "3600"
-  # HuggingFace caches: ~/.cache lives on /hnvme (file-count quota, currently over the hard
-  # limit), and datasets writes its filter/map results there when the dataloader starts.
-  # Explicit values because proxy.sh exports HF_HOME / HF_DATASETS_CACHE into the Ray head.
+  # HuggingFace caches on node-local disk: datasets writes its filter/map results there when the dataloader starts.
   HF_HOME: "/tmp/uni-agent/hf_home"
   HF_DATASETS_CACHE: "/tmp/uni-agent/hf_datasets_cache"
-  # JIT compile caches create thousands of files: keep them node-local, off the
-  # /hnvme (~/.cache) file quota.
+  # JIT compile caches create thousands of files: keep them node-local.
   VLLM_CACHE_ROOT: "/tmp/uni-agent-vllm-cache"
   TRITON_CACHE_DIR: "/tmp/uni-agent-triton-cache"
   TORCHINDUCTOR_CACHE_DIR: "/tmp/uni-agent-inductor-cache"

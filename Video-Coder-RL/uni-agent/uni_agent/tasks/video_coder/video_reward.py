@@ -204,7 +204,7 @@ class Ref2VAConfig(BaseModel):
 
     base_urls: list[str] = Field(
         min_length=1,
-        description="H3 servers, e.g. [http://h12-24:30010, http://h12-24:30011] (no /v1 suffix). Each job "
+        description="H3 servers, e.g. [http://h3-node:30010, http://h3-node:30011] (no /v1 suffix). Each job "
         "goes to the server with the fewest jobs in flight from this process; a server that refuses the "
         "connection is skipped. A single `base_url: ...` is accepted too.",
     )
@@ -250,7 +250,7 @@ class Ref2VAConfig(BaseModel):
 class JudgeConfig(BaseModel):
     """OpenAI-compatible VLM that receives both videos as ``video_url`` parts."""
 
-    base_url: str = Field(description="OpenAI-compatible base URL, e.g. http://h12-24:8000/v1.")
+    base_url: str = Field(description="OpenAI-compatible base URL, e.g. http://h3-node:8000/v1.")
     model: str
     api_key_env: str | None = Field(default=None, description="Name of the env var holding the API key, if any.")
     rubric: Literal["overall", "structured"] = Field(
@@ -279,7 +279,7 @@ class JudgeConfig(BaseModel):
     timeout: float = 600.0
     proxy: str | None = Field(
         default=None,
-        description="HTTP proxy for the judge only, e.g. http://proxy.nhr.fau.de:80 for an external API from a "
+        description="HTTP proxy for the judge only, e.g. http://proxy:80 for an external API from a "
         "compute node. The H3 servers are always reached directly.",
     )
     extra_body: dict[str, Any] = Field(

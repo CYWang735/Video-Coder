@@ -3,7 +3,7 @@
 #
 #   bash install_harness.sh [TOOL_DIR]
 #
-# TOOL_DIR the tool dir bound at /opt/mini-swe-agent (default $HOME/wangcy/mini-swe-agent-tool-2.4.6;
+# TOOL_DIR the tool dir bound at /opt/mini-swe-agent (default $HOME/mini-swe-agent-tool;
 #          needs mini-swe-agent >= 2.4 -- the Video-Coder harness's GuardedAgent relies on its agent API)
 #
 # The harness itself is this directory (run_agent.py, video_coder_harness/, bin/, configs/), bound read-only at
@@ -11,7 +11,7 @@
 # one extra package the Video-Coder harness needs (imageio-ffmpeg) and checks the imports. Needs internet once (login node).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOL="${1:-$HOME/wangcy/mini-swe-agent-tool-2.4.6}"
+TOOL="${1:-$HOME/mini-swe-agent-tool}"
 [[ -x "${TOOL}/bin/python" ]] || { echo "not a tool dir: ${TOOL}" >&2; exit 1; }
 "${TOOL}/bin/python" -I -c "import minisweagent as m, sys; v=tuple(int(x) for x in m.__version__.split('.')[:2]); sys.exit(0 if v >= (2, 4) else 'tool dir has mini-swe-agent ' + m.__version__ + ', need >= 2.4')"
 "${TOOL}/bin/python" -I -m pip install --no-cache-dir --disable-pip-version-check -q "imageio-ffmpeg==0.6.0"

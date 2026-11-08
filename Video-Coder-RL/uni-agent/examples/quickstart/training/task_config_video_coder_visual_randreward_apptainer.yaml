@@ -9,14 +9,14 @@
   debug_random_reward: true
   sandbox:
     provider: apptainer
-    image: /home/hpc/v189bd/v189bd13/wangcy/images/bpy-agent.sif
+    image: /path/to/bpy-agent.sif
     runtime_timeout: 4200
     sandbox_kwargs:
       # local .sif, no pull; the image is read-only, writes go to the per-instance overlay
       pull_policy: never
       binds:
-        - /home/hpc/v189bd/v189bd13/wangcy/mini-swe-agent-tool-2.4.6:/opt/mini-swe-agent:ro
-        - /home/hpc/v189bd/v189bd13/wangcy/uni-agent-v2/examples/video_coder:/opt/video-coder:ro
+        - /path/to/mini-swe-agent-tool:/opt/mini-swe-agent:ro
+        - /path/to/Video-Coder-RL/uni-agent/examples/video_coder:/opt/video-coder:ro
   agent:
     name: video_coder
     step_limit: 30

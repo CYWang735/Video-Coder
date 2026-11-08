@@ -4,8 +4,8 @@
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Optional site file that sets cluster-specific overrides before the defaults below
-# (see cluster/helma/site_env.sh). Not needed on a normal GPU server.
+# Optional site file that sets cluster-specific overrides before the defaults below.
+# Not needed on a normal GPU server.
 if [ -n "${H3_SITE_ENV:-}" ]; then
     # shellcheck disable=SC1090
     source "$H3_SITE_ENV"

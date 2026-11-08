@@ -10,7 +10,7 @@
 #   bash build_tool_apptainer.sh build   [TARBALL]        # needs internet (login node)
 #   bash build_tool_apptainer.sh extract [TARBALL] [DIR]  # once per compute node
 #
-# Defaults: TARBALL=$HOME/wangcy/mini-swe-agent-tool.tar.gz  DIR=/tmp/$USER/mini-swe-agent-tool
+# Defaults: TARBALL=$HOME/mini-swe-agent-tool.tar.gz  DIR=/tmp/$USER/mini-swe-agent-tool
 set -euo pipefail
 
 # The tool python always runs isolated (-I): no ~/.local user site, no PYTHONPATH /
@@ -26,7 +26,7 @@ PIP_INDEX_URL="${PIP_INDEX_URL:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mode="${1:-}"
-tarball="${2:-$HOME/wangcy/mini-swe-agent-tool.tar.gz}"
+tarball="${2:-$HOME/mini-swe-agent-tool.tar.gz}"
 
 case "${mode}" in
 build)

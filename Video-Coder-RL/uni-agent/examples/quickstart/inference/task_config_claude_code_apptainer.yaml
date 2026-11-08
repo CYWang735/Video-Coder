@@ -10,7 +10,7 @@
     sandbox_kwargs:
       pull_timeout: 1800
       binds:
-        - /home/hpc/v189bd/v189bd13/.local/share/claude/versions/2.1.283:/opt/claude-code/bin/claude:ro
+        - /path/to/claude-code:/opt/claude-code/bin/claude:ro
       add_to_path:
         - /opt/claude-code/bin
   agent:
@@ -35,7 +35,7 @@
     sandbox_kwargs:
       pull_timeout: 1800
       binds:
-        - /home/hpc/v189bd/v189bd13/.local/share/claude/versions/2.1.283:/opt/claude-code/bin/claude:ro
+        - /path/to/claude-code:/opt/claude-code/bin/claude:ro
       add_to_path:
         - /opt/claude-code/bin
   agent:
