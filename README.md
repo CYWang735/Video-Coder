@@ -1,6 +1,6 @@
 # Video-Coder: Reinforcing Agentic Coding for Video Generation
 
-[Overview](#-about-video-coder) · [Datasets](#-datasets) · [Results](#-performance) · [Training](#-training) · [Inference](#-inference)
+[[📖 Paper]()] [[🤗 Video-Coder-9B-model](https://huggingface.co/Video-Coder/Video-Coder-9B)] [🤗[Video-Coder-SFT-model](https://huggingface.co/Video-Coder/Video-Coder-SFT-9B)] [[🤗 Video-Coder-train-data](https://huggingface.co/datasets/Video-Coder/Train-Data)] 
 
 ## 👀 About Video-Coder
 
