@@ -12,7 +12,7 @@ We introduce **Video-Coder**, a code-driven video generation agent that autonomo
 
 We develop the **Video-Coder Harness**, a unified interactive environment integrating code execution, 3D scene rendering, and execution feedback. The same harness supports trajectory synthesis, agentic reinforcement learning, and inference.
 
-Video-Coder is trained with supervised fine-tuning followed by **harness-native agentic reinforcement learning** with dual reward feedback. An execution reward encourages executable scene programs, while a video reward evaluates the generated results. An annealing strategy gradually reduces the execution reward during training, placing greater emphasis on video quality in later stages.
+Video-Coder is trained with supervised fine-tuning followed by **harness-native agentic reinforcement learning** with dual reward feedback. 
 
 ## 📍 Highlights
 
@@ -137,7 +137,7 @@ bash examples/video_coder/train_video_coder_rl.sh
 
 We trained RL on 8 × H100 GPUs (2 nodes), plus 4 GPUs per MiniMax-H3 server.
 
-## 🔮 Inference
+## 🔮 Inference & Evaluation
 
 Prepare your own prompts in the same format as the training data: a JSON list of `{"id": ..., "prompt": ...}` (`gt_video` is not needed).
 
@@ -161,6 +161,7 @@ bash run_batch.sh /path/to/output/h3_manifest.jsonl /path/to/output/final
 ```
 
 The final videos are written to `/path/to/output/final/<id>.mp4`.
+
 
 ## Acknowledgements
 
