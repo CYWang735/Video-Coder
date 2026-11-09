@@ -14,13 +14,16 @@ We develop the **Video-Coder Harness**, a unified interactive environment integr
 
 Video-Coder is trained with supervised fine-tuning followed by **harness-native agentic reinforcement learning** with dual reward feedback. 
 
-## 📍 Highlights
+## 🔥 News
 
-- **Executable 3D scene programs:** explicitly represent objects, spatial layout, motion, and camera behavior.
-- **Iterative refinement:** write, execute, inspect, and revise programs through the Video-Coder Harness.
-- **Two-stage training:** initialize with SFT, then improve generation through agentic RL with execution and video rewards.
-- **Transfer across generators:** use the trained agent with MiniMax-H3 and OmniWeaving.
-- **Physics-focused evaluation:** assess generation on PhyGenBench and VBench-2.0.
+- [2026/11/08] We release the code, model, data of Video-Coder
+
+## 📍 Feature
+
+- Support Qwen3.5 Training
+- Support different Video generators  
+- Full training pipline for coding agent (SFT and RL)
+
 
 
 ## 🏆 Performance
