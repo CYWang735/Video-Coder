@@ -169,3 +169,16 @@ The final videos are written to `/path/to/output/final/<id>.mp4`.
 ## Acknowledgements
 
 We thank the open-source projects that support this implementation, including [ms-swift](https://github.com/modelscope/ms-swift), [verl](https://github.com/volcengine/verl), [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent), and [SGLang](https://github.com/sgl-project/sglang).
+
+## Citations
+
+If you find our work helpful for your research, please consider citing our work.   
+
+```
+@article{wang2026video,
+  title={Video-Coder: Reinforcing Agentic Coding for Video Generation},
+  author={Wang, Chaoyang and Gao, Sicheng and Hu, Junan and Li, Kunyang and Chen, Dongyang and Zhou, Yiyang and Yao, Huaxiu and Lee, Yong Jae and Timofte, Radu and Shang, Yuzhang},
+  journal={arXiv preprint arXiv:2611.09894},
+  year={2026}
+}
+```
